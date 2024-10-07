@@ -12,3 +12,60 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id         Int          @id @default(autoincrement())
+  username   String       @unique
+  Submission Submission[]
+  Result     Result[]
+}
+
+model Exam {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String
+  duration    Int
+  startTime   DateTime
+  endTime     DateTime
+  Question    Question[]
+  Submission  Submission[]
+  Result      Result[]
+}
+
+model Question {
+  id            Int          @id @default(autoincrement())
+  examId        Int
+  exam          Exam         @relation(fields: [examId], references: [id])
+  questionText  String
+  optionA       String
+  optionB       String
+  optionC       String
+  optionD       String
+  correctAnswer String
+  Submission    Submission[]
+}
+
+model Submission {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
+  examId         Int
+  exam           Exam     @relation(fields: [examId], references: [id])
+  questionId     Int
+  question       Question @relation(fields: [questionId], references: [id])
+  selectedAnswer String?
+  isCorrect      Boolean?
+}
+
+model Result {
+  id           Int  @id @default(autoincrement())
+  userId       Int
+  user         User @relation(fields: [userId], references: [id])
+  examId       Int
+  exam         Exam @relation(fields: [examId], references: [id])
+  totalScore   Int
+  correctCount Int
+  wrongCount   Int
+  skippedCount Int
+  position     Int
+}
