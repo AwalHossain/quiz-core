@@ -13,7 +13,13 @@ export class UsersService {
     if (user) throw new HttpException('User not found', 404);
     return this.prisma.user.create({
       data,
-      include: { Submission: true, Result: true },
+      include: { examSession: true, result: true },
+    });
+  }
+
+  async getAllUsers() {
+    return this.prisma.user.findMany({
+      include: { examSession: true, result: true },
     });
   }
 }
