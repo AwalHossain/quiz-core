@@ -1,4 +1,4 @@
-import { IsDate, IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsDate, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class CreateExamDto {
   @IsString()
@@ -89,7 +89,7 @@ export class CreateExamSessionDto {
 export class CreateSubmissionDto {
   @IsNumber()
   @IsNotEmpty()
-  examId: number;
+  examSessionId: number;
 
   @IsNumber()
   @IsNotEmpty()
@@ -97,7 +97,11 @@ export class CreateSubmissionDto {
 
   @IsString()
   @IsNotEmpty()
-  answer: string;
+  answer: string | null;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  isSkipped: boolean;
 }
 
 export class ExamSession {
