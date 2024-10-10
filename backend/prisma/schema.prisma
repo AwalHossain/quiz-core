@@ -55,15 +55,18 @@ enum QuestionOption {
 }
 
 model ExamSession {
-  id                Int             @id @default(autoincrement())
-  userId            Int
-  examId            Int
-  user              User            @relation(fields: [userId], references: [id])
-  exam              Exam            @relation(fields: [examId], references: [id])
+  id                Int      @id @default(autoincrement())
   startTime         DateTime
-  currentQuestionId Int             @default(1)
-  submission        Submission[]
-  questionOrder     QuestionOrder[]
+  currentQuestionId Int      @default(1)
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id])
+
+  examId Int
+  exam   Exam @relation(fields: [examId], references: [id])
+
+  submission    Submission[]
+  questionOrder QuestionOrder[]
 }
 
 model Submission {
@@ -78,6 +81,8 @@ model Submission {
   isCorrect      Boolean?
   Exam           Exam        @relation(fields: [examId], references: [id])
   examId         Int
+
+  @@unique([examSessionId, questionId])
 }
 
 model Result {
