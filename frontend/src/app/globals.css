@@ -1,0 +1,64 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 154 91% 25%; /* Green */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 148 70% 44%; /* Green-light */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 143 50% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 100% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 154 91% 25%;
+    --radius: 0.5rem;
+
+    /* Custom colors from the image */
+    --custom-red: 360 91% 49%;
+    --custom-green: 154 91% 25%;
+    --custom-green-light: 148 70% 44%;
+    --custom-white: 0 0% 100%;
+    --custom-bg-light: 0 0% 99%;
+    --custom-black: 0 0% 0%;
+    --custom-gray-strong: 220 3% 46%;
+    --custom-content-tertiary: 0 0% 45%;
+    --custom-content-secondary: 0 0% 34%;
+    --custom-content-white: 0 0% 100%;
+    --custom-border-gray-light: 0 0% 93%;
+    --custom-border-strong-gray: 0 0% 80%;
+    --custom-border-green-gray: 154 12% 87%;
+    --custom-border-green-light: 148 30% 89%;
+    --custom-avatar-bg: 200 13% 95%;
+    --custom-avatar-text: 200 23% 96%;
+  }
+
+  .dark {
+    --background: 0 0% 7%;
+    --foreground: 0 0% 98%;
+    /* ... (other dark mode variables) ... */
+
+    /* Custom colors remain the same in dark mode */
+    /* You can adjust these if you want different values for dark mode */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
