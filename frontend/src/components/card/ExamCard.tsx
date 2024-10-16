@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import Image from 'next/image';
 import Link from 'next/link';
@@ -8,28 +9,22 @@ import { Button } from '../ui/button';
 interface StatProps {
     icon: string;
     label: string;
-    value: string;
+    value: string | number | null;
 }
 
 const Stat: React.FC<StatProps> = ({ icon, label, value }) => (
     <div className="text-center">
-        <div className="text-sm mb-1">{icon}</div>
+        {/* <div className="text-sm mb-1">{icon}</div> */}
         <div className="text-xs text-gray-600">{label}</div>
         <div className="text-xs">{value}</div>
     </div>
 )
 
-interface ExamCardProps {
-    title: string;
-    questionCount: number;
-    totalTime: string;
-    passMark: string;
-    negativeMarking: string;
-    icon: any;
-    id: string;
-}
 
-const ExamCard: React.FC<ExamCardProps> = ({ id, title, icon, questionCount, totalTime, passMark, negativeMarking }) => {
+
+const ExamCard: React.FC<Exam> = ({ id, title, icon, questionCount, duration, description, startTime, endTime, status, passingScore }) => {
+    console.log(questionCount, "questionCount");
+
     return (
         <div className="bg-white rounded-lg shadow-md p-6 min-w-[300px] max-w-sm mx-auto">
             {/* exam icon */}
@@ -38,12 +33,12 @@ const ExamCard: React.FC<ExamCardProps> = ({ id, title, icon, questionCount, tot
             </div>
             <h2 className="text-xl font-bold text-center mb-2">{title}</h2>
             {/* <hr className="border-t border-gray-200 mb-4" /> */}
-            <div className="flex flex-wrap gap-2">
+            <div className="flex justify-center flex-wrap gap-4">
 
                 <Stat icon="❓" label="প্রশ্নের সংখ্যা" value={`${questionCount}টি`} />
-                <Stat icon="🕒" label="মোট সময়" value={totalTime} />
-                <Stat icon="🏆" label="পাশ মার্ক" value={passMark} />
-                <Stat icon="⚠️" label="নেগেটিভ মার্কিং" value={negativeMarking} />
+                <Stat icon="🕒" label="মোট সময়" value={`${duration} মিনিট`} />
+                <Stat icon="🏆" label="পাশ মার্ক" value={`${passingScore}%`} />
+                {/* <Stat icon="⚠️" label="নেগেটিভ মার্কিং" value={negativeMarking} /> */}
             </div>
             <Link href={`/exam/${id}`} >
                 <Button className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white">
