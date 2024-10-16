@@ -1,6 +1,7 @@
 
 export const ENDPOINTS = {
   LOGIN: '/auth/login',
-  GETALLEXAM: '/exam/all',
+  GETALL_EXAM: '/exam/all',
+  EXAM_SESSION: '/exam/session',
+  EXAM_QUESTIONS: '/questions',
 };
-
