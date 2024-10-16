@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Post, Query, UsePipes, ValidationPipe } from "@nestjs/common";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Post,
+  UsePipes,
+  ValidationPipe
+} from "@nestjs/common";
 import { CreateExamDto, CreateExamSessionDto, CreateSubmissionDto } from "./dtos/createExam.dto";
 import { ExamService } from "./exam.service";
 
@@ -18,23 +26,17 @@ export class ExamController {
 
   @Post("/session")
   @UsePipes(ValidationPipe)
-  createExamSession(@Body() data: CreateExamSessionDto) {
-    return this.examService.startOrResumeExam(data.userId, data.examId);
+  async createExamSession(@Body() data: CreateExamSessionDto) {
+    try {
+      return await this.examService.startOrResumeExam(data.userId, data.examId);
+    } catch (error: any) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Post("/submit")
   @UsePipes(ValidationPipe)
   submitQuestionAnswer(@Body() data: CreateSubmissionDto) {
     return this.examService.submitQuestionAnswer(data);
-  }
-
-  @Get("/current")
-  getCurrentQuestion(
-    @Query("examSessionId") examSessionId: number,
-    @Query("action") action: "next" | "previous" | "current"
-  ) {
-    console.log(examSessionId, action, "examSessionId, action");
-
-    return this.examService.getCurrentQuestion(Number(examSessionId), action);
   }
 }
