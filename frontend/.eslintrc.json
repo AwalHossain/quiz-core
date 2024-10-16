@@ -36,6 +36,7 @@
         "pathGroupsExcludedImportTypes": ["builtin"]
       }
     ],
+    "import/no-unresolved": "off",
     "@typescript-eslint/no-misused-promises": [
       "error",
       {
