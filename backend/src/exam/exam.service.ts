@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateExamDto, CreateSubmissionDto } from "./dtos/createExam.dto";
 
@@ -16,6 +16,7 @@ export class ExamService {
   async createExam(data: CreateExamDto) {
     const { startTime, endTime } = data;
     const examData = {
+      questionCount: 0,
       startTime: startTime ?? null, // if startTime is not provided, set it to null
       endTime: endTime ?? null, // if endTime is not provided, set it to null
       ...data,
@@ -27,11 +28,7 @@ export class ExamService {
   }
 
   async getAllExams() {
-    const exams = await this.prisma.exam.findMany({
-      include: {
-        question: true,
-      },
-    });
+    const exams = await this.prisma.exam.findMany({});
     return exams;
   }
 
@@ -176,6 +173,8 @@ export class ExamService {
 
   // Start or Resume Exam Session
   async startOrResumeExam(userId: number, examId: number) {
+    if (!userId || !examId) throw new BadRequestException("Invalid user or exam");
+
     let examSession = await this.prisma.examSession.findFirst({
       where: {
         userId,
@@ -248,77 +247,35 @@ export class ExamService {
       await this.prisma.examSession.update({
         where: { id: session.id },
         data: { status: updatedStatus },
+        include: {
+          exam: {
+            select: {
+              duration: true,
+            },
+          },
+        },
       });
     }
 
-    const remainingTime = Math.max(0, endTime.getTime() - now.getTime());
-    const hours = Math.floor(remainingTime / (1000 * 60 * 60));
-    const minutes = Math.floor((remainingTime * 1000 * 60 * 60) / (1000 * 60));
-    const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
-    const total = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} : ${seconds.toString().padStart(2, "0")}`;
+    const remainingTimeMs = Math.max(0, endTime.getTime() - now.getTime());
+    const remainingSeconds = Math.floor(remainingTimeMs / 1000);
+
+    // const formattedTime = `${remainingMinutes} min ${remainingSeconds} sec`;
+
+    // console.log(formattedTime, "total time");
 
     return {
       id: session.id,
-      remainingTime: total,
+      remainingTime: remainingSeconds,
       status: updatedStatus,
       isExpired,
       startTime,
+      duration: session.exam.duration,
       currentQuestionId: session.currentQuestionId,
     };
   }
 
-  // fetching the current question and handling navigation
-  async getCurrentQuestion(examSessionId: number, action: "next" | "previous" | "current") {
-    const examSession = await this.prisma.examSession.findUnique({
-      where: { id: Number(examSessionId) },
-      include: {
-        questionOrder: {
-          include: {
-            question: true,
-          },
-        },
-        submission: true,
-      },
-    });
-    if (!examSession) throw new NotFoundException("Exam session not found");
-    let currentQuestionIndex = examSession.questionOrder.findIndex(
-      (qo) => qo.questionId === examSession.currentQuestionId
-    );
 
-    console.log(currentQuestionIndex, "currentQuestionIndex");
-    console.log(examSession.questionOrder, "examSession.questionOrder");
-
-    switch (action) {
-      case "next":
-        currentQuestionIndex = Math.min(
-          currentQuestionIndex + 1,
-          examSession.questionOrder.length - 1
-        );
-        break;
-      case "previous":
-        currentQuestionIndex = Math.max(currentQuestionIndex - 1, 0);
-        break;
-    }
-    const currentQuestion = examSession?.questionOrder[currentQuestionIndex].question;
-    const submission = examSession?.submission.find((s) => s.questionId === currentQuestion.id);
-
-    // update the currentQuestionId in Exam Session
-    await this.prisma.examSession.update({
-      where: { id: examSessionId },
-      data: {
-        currentQuestionId: currentQuestion.id,
-      },
-    });
-
-    return {
-      question: currentQuestion,
-      isLast: currentQuestionIndex === examSession.questionOrder.length - 1,
-      submission: submission
-        ? { selectedAnswer: submission.selectedAnswer, isSkipped: submission.isSkipped }
-        : null,
-    };
-    // const submission = examSession.submission.find(s => s.questionId === currentQuestionIndex.id)
-  }
 
   // handling the submission of the question
   async submitQuestionAnswer(data: CreateSubmissionDto) {
