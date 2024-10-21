@@ -1,3 +1,4 @@
+import { OptionLetter } from "@prisma/client";
 import { IsBoolean, IsDate, IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class CreateExamDto {
@@ -77,30 +78,34 @@ export class CreateResultDto {
 }
 
 export class CreateExamSessionDto {
-  @IsNumber()
+  @IsString()
   @IsNotEmpty()
-  examId: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  userId: number;
-}
-
-export class CreateSubmissionDto {
-  @IsNumber()
-  @IsNotEmpty()
-  examSessionId: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  questionId: number;
+  examId: string;
 
   @IsString()
   @IsNotEmpty()
-  answer: string | null;
+  userId: string;
+
+  @IsString()
+  @IsOptional()
+  currentQuestionId: string;
+}
+
+export class CreateSubmissionDto {
+  @IsString()
+  @IsNotEmpty()
+  examSessionId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  questionId: string;
+
+  @IsString()
+  @IsOptional()
+  selectedAnswer: OptionLetter | null;
 
   @IsBoolean()
-  @IsNotEmpty()
+  @IsOptional()
   isSkipped: boolean;
 }
 
