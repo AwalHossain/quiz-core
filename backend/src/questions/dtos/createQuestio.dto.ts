@@ -1,30 +1,30 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { OptionLetter } from "@prisma/client";
+import { IsArray, IsNotEmpty, IsString, IsUUID } from "class-validator";
 
 export class CreateQuestionDto {
   @IsString()
   @IsNotEmpty()
   questionText: string;
 
-  @IsString()
+  @IsArray()
   @IsNotEmpty()
-  optionA: string;
+  options: CreateQuestionOptionDto[];
 
   @IsString()
   @IsNotEmpty()
-  optionB: string;
+  correctOptionId: OptionLetter;
+
+  @IsNotEmpty()
+  @IsUUID()
+  examId: string;
+}
+
+export class CreateQuestionOptionDto {
+  @IsString()
+  @IsNotEmpty()
+  optionText: string;
 
   @IsString()
   @IsNotEmpty()
-  optionC: string;
-
-  @IsString()
-  @IsNotEmpty()
-  optionD: string;
-
-  @IsString()
-  @IsNotEmpty()
-  correctAnswer: string;
-
-  @IsNotEmpty()
-  examId: number;
+  optionLetter: string;
 }
