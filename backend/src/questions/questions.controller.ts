@@ -26,18 +26,18 @@ export class QuestionsController {
     return this.questionsService.getAllQuestions();
   }
 
-  @Get("/:examId")
-  getQuestionsByExamId(@Param("examId") examId: number) {
+  @Get("/exam/:examId")
+  getQuestionsByExamId(@Param("examId") examId: string) {
     return this.questionsService.getQuestionsByExamId(examId);
   }
 
   @Get("/current")
   getCurrentQuestion(
-    @Query("examSessionId") examSessionId: number,
+    @Query("examSessionId") examSessionId: string,
     @Query("action") action: "next" | "previous" | "current"
   ) {
-    console.log(examSessionId, action, "examSessionId, action");
+    console.log("examSessionId, action", examSessionId, "current", action);
 
-    return this.questionsService.getCurrentQuestion(Number(examSessionId), action);
+    return this.questionsService.getCurrentQuestion(examSessionId, action);
   }
 }
