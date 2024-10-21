@@ -1,4 +1,5 @@
 
+import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Noto_Sans_Bengali } from "next/font/google";
 import { ReactNode } from "react";
@@ -32,6 +33,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Navbar />
+          <Toaster />
           {children}
         </ThemeProvider>
       </body>
