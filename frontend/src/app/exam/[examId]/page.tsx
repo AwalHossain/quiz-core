@@ -6,7 +6,9 @@ import ExamContent from "./features/ExamContent";
 import ExamTimer from "./features/ExamTimer";
 
 const ExamSessionPage = async ({ params }: { params: { examId: string } }) => {
-    const { data } = await ExamSession(params.examId, "7a48fb62-4321-4b6c-82a8-35ecdaadcc08");
+    const { data } = await ExamSession(params.examId, "b158e666-fec5-4d72-9447-ef4463c7a9da");
+    console.log(data, "Hey aman it's not working")
+
     const { data: currentQuestion } = await GetCurrentQuestion(data.id, "current");
 
     return (
