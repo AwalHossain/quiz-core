@@ -109,7 +109,6 @@ export class ExamService {
     }>
   ) {
     if (!session) throw new NotFoundException("Exam Session Not found");
-    console.log(session, "session id update exam state");
 
     const now = new Date();
     const startTime = new Date(session.startTime);
@@ -118,8 +117,7 @@ export class ExamService {
     const isExpired = now > endTime;
 
     if (isExpired && session.status !== "FINISHED") {
-      const final = await this.finalizeExam(session);
-      console.log(final, "final result");
+      await this.finalizeExam(session);
     }
 
     const remainingTimeMs = Math.max(0, endTime.getTime() - now.getTime());
@@ -241,6 +239,7 @@ export class ExamService {
     examSession: Prisma.ExamSessionGetPayload<{
       include: {
         submission: true;
+        exam: { select: { duration: true } };
       };
     }>
   ) {
@@ -248,7 +247,7 @@ export class ExamService {
       throw new NotFoundException("Exam session not found");
     }
 
-    const correctAnswers = examSession.submission.filter((s) => s.isCorrect).length;
+    const totalCorrectAnswer = examSession.submission.filter((s) => s.isCorrect).length;
     const wrongAnswers = examSession.submission.filter(
       (s) => s.selectedAnswer && !s.isCorrect
     ).length;
@@ -256,21 +255,23 @@ export class ExamService {
     const skippedCount = examSession.submission.filter((s) => s.isSkipped).length;
 
     const result = await this.prisma.$transaction(async (prisma) => {
+      const position = await this.calculatePosition(prisma, examSession.examId, totalCorrectAnswer);
       const createdResult = await prisma.result.create({
         data: {
           userId: examSession.userId,
           examId: examSession.examId,
-          totalScore: correctAnswers,
-          correctCount: correctAnswers,
+          totalScore: totalCorrectAnswer,
+          correctCount: totalCorrectAnswer,
           wrongCount: wrongAnswers,
           skippedCount,
-          position: 0,
+          position,
         },
       });
 
-      const timeSpent = examSession.endTime
-        ? examSession.endTime.getTime() - examSession.startTime.getTime()
-        : null;
+      const startTime = new Date(examSession.startTime);
+      const endTime = new Date().getTime();
+
+      const timeSpent = Math.floor((endTime - startTime.getTime()) / 1000 / 60);
 
       await prisma.examSession.update({
         where: { id: examSession.id },
@@ -288,11 +289,6 @@ export class ExamService {
           },
         },
       });
-      const position = await this.calculatePosition(
-        prisma,
-        examSession.examId,
-        createdResult.totalScore
-      );
 
       await prisma.leaderboard.create({
         data: {
@@ -381,9 +377,9 @@ export class ExamService {
 
     return examSession.submission.map((s) => ({
       question: s.question.questionText,
-      selectedAnswer: s.selectedAnswer,
-      correctAnswer: s.question.questionOption.find((o) => o.optionLetter === s.selectedAnswer)
+      selectedAnswer: s.question.questionOption.find((o) => o.optionLetter === s.selectedAnswer)
         ?.optionText,
+      correctAnswer: s.question.correctOptionId,
       isCorrect: s.isCorrect,
       isSkipped: s.isSkipped,
     }));
