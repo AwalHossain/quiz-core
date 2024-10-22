@@ -36,8 +36,6 @@ export class QuestionsController {
     @Query("examSessionId") examSessionId: string,
     @Query("action") action: "next" | "previous" | "current"
   ) {
-    console.log("examSessionId, action", examSessionId, "current", action);
-
     return this.questionsService.getCurrentQuestion(examSessionId, action);
   }
 }
