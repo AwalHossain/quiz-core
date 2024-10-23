@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { Exam } from '@/types/constants';
 import Image from 'next/image';
 import Link from 'next/link';
 import React from 'react';
@@ -22,9 +23,10 @@ const Stat: React.FC<StatProps> = ({ icon, label, value }) => (
 
 
 
-const ExamCard: React.FC<Exam> = ({ id, title, icon, questionCount, duration, description, startTime, endTime, status, passingScore }) => {
-    console.log(questionCount, "questionCount");
-
+const ExamCard: React.FC<Exam> = ({ id, title, icon, questionCount, duration, description, startTime, endTime, status, passingScore, hasCompleted }) => {
+    console.log(hasCompleted, "hasCompleted");
+    // const { userId } = useAuth();
+    const userId = "5d042e01-f949-4c58-89a8-1c5e1d7b953b";
     return (
         <div className="bg-white rounded-lg shadow-md p-6 min-w-[300px] max-w-sm mx-auto">
             {/* exam icon */}
@@ -40,11 +42,19 @@ const ExamCard: React.FC<Exam> = ({ id, title, icon, questionCount, duration, de
                 <Stat icon="🏆" label="পাশ মার্ক" value={`${passingScore}%`} />
                 {/* <Stat icon="⚠️" label="নেগেটিভ মার্কিং" value={negativeMarking} /> */}
             </div>
-            <Link href={`/exam/${id}`} >
-                <Button className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white">
-                    কুইজ শুরু করুন
-                </Button>
-            </Link>
+            {hasCompleted ? (
+                <Link href={`/result/${userId}/${id}`} >
+                    <Button className="w-full mt-4  hover:bg-green-600 text-white">
+                        রেজাল্ট দেখুন
+                    </Button>
+                </Link>
+            ) : (
+                <Link href={`/session/${id}`} >
+                    <Button className="w-full mt-4 bg-green-500 hover:bg-green-600 text-white">
+                        কুইজ শুরু করুন ,
+                    </Button>
+                </Link>
+            )}
         </div>
     )
 }
