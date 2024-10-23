@@ -13,7 +13,7 @@ const Hero = () => {
             style={{ width: '100%', height: 'auto' }} // optional
           />
         </div> */}
-            <section className=" h-[478px] w-full bg-cover bg-center bg-no-repeat sm:h-[500px] md:mt-[-22px] lg:h-[630px] bg-[url('https://res.cloudinary.com/cross-border-education-technologies-pte-ltd/image/upload/v1721890721/Shikho%20Website%20V3/Shikho%20New%20Hero%20Image%20-%20July%202024/mobile_responsive_punqka.png')] lg:bg-[url('https://res.cloudinary.com/cross-border-education-technologies-pte-ltd/image/upload/v1721890721/Shikho%20Website%20V3/Shikho%20New%20Hero%20Image%20-%20July%202024/desktop_version_sn7dpn.png')]">
+            <section className=" h-[478px] w-full bg-cover bg-center bg-no-repeat sm:h-[500px] lg:h-[630px] bg-[url('https://res.cloudinary.com/cross-border-education-technologies-pte-ltd/image/upload/v1721890721/Shikho%20Website%20V3/Shikho%20New%20Hero%20Image%20-%20July%202024/mobile_responsive_punqka.png')] lg:bg-[url('https://res.cloudinary.com/cross-border-education-technologies-pte-ltd/image/upload/v1721890721/Shikho%20Website%20V3/Shikho%20New%20Hero%20Image%20-%20July%202024/desktop_version_sn7dpn.png')]">
                 <div className="mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:h-full lg:px-8">
                     <div className="grid w-full grid-cols-12 lg:h-full ">
                         <div className=" col-span-12  md:col-span-7 md:pt-[90px] lg:pt-[120px]">
