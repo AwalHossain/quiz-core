@@ -1,4 +1,5 @@
 'use client'
+import { Exam } from '@/types/constants';
 import React from 'react';
 import Q1 from '../../assets/Q1.png';
 import Q2 from '../../assets/Q2.png';
@@ -54,6 +55,7 @@ const ExamCards: React.FC<{ questions: Exam[] }> = ({ questions }) => {
                     status={exam.status}
                     passingScore={exam.passingScore}
                     icon={examIcons[index % examIcons.length]}
+                    hasCompleted={exam.hasCompleted}
                 />
             ))}
         </div>
