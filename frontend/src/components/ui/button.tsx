@@ -1,6 +1,6 @@
-import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
+import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
@@ -9,12 +9,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
+        default:
+          "bg-secondary text-primary-foreground hover:bg-primary focus:ring-2 focus:ring-custom-border-green-light",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+        outline:
+          "border border-input bg-background text-primary hover:bg-primary focus:ring-2 focus:ring-custom-border-green-light hover:text-accent-foreground",
+        secondary:
+          "bg-primary text-secondary-foreground hover:bg-secondary/80  focus:ring-2 focus:ring-custom-border-green-light",
+        ghost:
+          "hover:bg-accent hover:text-accent-foreground  focus:ring-2 focus:ring-custom-border-green-light",
+        link: "text-primary underline-offset-4 hover:underline focus:ring-2 focus:ring-custom-border-green-light",
       },
       size: {
         default: "h-10 px-4 py-2",
@@ -32,7 +36,7 @@ const buttonVariants = cva(
 
 export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
-    VariantProps<typeof buttonVariants> {
+  VariantProps<typeof buttonVariants> {
   asChild?: boolean;
 }
 
