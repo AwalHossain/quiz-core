@@ -39,3 +39,17 @@ export interface ExamProviderProps {
     submission: any | null;
   };
 }
+
+export interface Exam {
+  id: string;
+  title: string;
+  description: string;
+  questionCount: number;
+  duration: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+  passingScore: number;
+  hasCompleted?: boolean;
+  icon?: any;
+}
