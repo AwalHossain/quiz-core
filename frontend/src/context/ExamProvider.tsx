@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ExamProvider.tsx
 "use client"
 import { createContext, useContext, useState } from "react";
@@ -22,6 +23,8 @@ interface ExamContextType {
     setTotalQuestions: (total: number) => void;
     submission: any | null;
     setSubmission: (submission: any) => void;
+    isLoading: boolean;
+    setIsLoading: (isLoading: boolean) => void;
 }
 
 interface ExamProviderProps {
@@ -43,6 +46,7 @@ export const ExamProvider: React.FC<ExamProviderProps> = ({ children, initialExa
     const [isLast, setIsLast] = useState<boolean>(initialExamState.isLast);
     const [totalQuestions, setTotalQuestions] = useState<number>(initialExamState.totalQuestions);
     const [submission, setSubmission] = useState<any | null>(initialExamState.submission);
+    const [isLoading, setIsLoading] = useState<boolean>(false);
 
     const value: ExamContextType = {
         currentQuestion,
@@ -55,6 +59,8 @@ export const ExamProvider: React.FC<ExamProviderProps> = ({ children, initialExa
         setTotalQuestions,
         submission,
         setSubmission,
+        isLoading,
+        setIsLoading,
     };
 
     return (
@@ -71,3 +77,44 @@ export const useExam = () => {
     }
     return context;
 };
+
+
+export const useExamNavigation = () => {
+    const { isLoading, setIsLoading, setCurrentIndex, setIsLast, setTotalQuestions,
+        setSubmission, setCurrentQuestion
+    } = useExam()
+
+    const handleNavigation = async (apiCall: () => Promise<any>,
+        onSuccess: (data: any) => void,
+        onError: (error: any) => void
+    ) => {
+        setIsLoading(true)
+        try {
+            const response = await apiCall();
+            // Check if the response is the exam completion object
+            if (response && response.isExamComplete !== undefined) {
+                onSuccess(response);
+            } else if (response && response.data) {
+                // Regular navigation response
+                onSuccess(response.data);
+            } else {
+                // Unexpected response format
+                throw new Error("Unexpected response format");
+            }
+        } catch (error) {
+            onError(error);
+        } finally {
+            setIsLoading(false);
+        }
+    }
+
+    const updateExamState = (data: any) => {
+        setCurrentQuestion(data.question)
+        setCurrentIndex(data.currentIndex)
+        setIsLast(data.isLast)
+        setTotalQuestions(data.totalQuestions)
+        setSubmission(data.submission || null)
+    }
+
+    return { handleNavigation, updateExamState, isLoading }
+}
