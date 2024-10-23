@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { AxiosResponse } from "axios";
 import { toast } from "sonner";
 import { clientFetch } from "../client-fetch";
