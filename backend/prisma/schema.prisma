@@ -143,7 +143,8 @@ model Result {
   correctCount Int
   wrongCount   Int
   skippedCount Int
-  position     Int
+  position     Int?
+  totalTimeSpent    Int?
   leaderboard  Leaderboard[]
 }
 
