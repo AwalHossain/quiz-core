@@ -29,9 +29,35 @@ export class ExamService {
     return exam;
   }
 
-  async getAllExams() {
-    const exams = await this.prisma.exam.findMany({});
-    return exams;
+  async getAllExams(userId?: string) {
+    const exams = await this.prisma.exam.findMany({
+      where: {
+        status: "DRAFT",
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        duration: true,
+        passingScore: true,
+        questionCount: true,
+        status: true,
+        ...(userId && {
+          result: {
+            where: {
+              userId,
+            },
+            select: {
+              id: true,
+            },
+          },
+        }),
+      },
+    });
+    return exams.map((exam) => ({
+      ...exam,
+      hasCompleted: userId ? exam.result.length > 0 : undefined,
+    }));
   }
 
   async getExamById(examId: string) {
@@ -119,6 +145,17 @@ export class ExamService {
     if (isExpired && session.status !== "FINISHED") {
       await this.finalizeExam(session);
     }
+    // if it's times not expired but user has finished the exam then just show the result and don't allow to submit
+    if (session.status === "FINISHED") {
+      return {
+        id: session.id,
+        remainingTime: 0,
+        status: session.status,
+        isExpired: true,
+        startTime: session.startTime,
+        endTime: new Date().getTime(),
+      };
+    }
 
     const remainingTimeMs = Math.max(0, endTime.getTime() - now.getTime());
     const remainingSeconds = Math.floor(remainingTimeMs / 1000);
@@ -147,6 +184,14 @@ export class ExamService {
             questionCount: true,
           },
         },
+        questionOrder: {
+          where: {
+            questionId,
+          },
+          select: {
+            orderIndex: true,
+          },
+        },
         currentQuestion: {
           select: {
             correctOptionId: true,
@@ -158,13 +203,7 @@ export class ExamService {
     if (!examSession) {
       throw new NotFoundException("Exam session not found");
     }
-
-    const questionOrder = await this.prisma.questionOrder.findFirst({
-      where: { examSessionId, questionId },
-      select: { orderIndex: true },
-    });
-
-    if (!questionOrder) {
+    if (!examSession.questionOrder[0]) {
       throw new NotFoundException("Question not found in this exam session");
     }
 
@@ -173,16 +212,8 @@ export class ExamService {
       isCorrect = examSession.currentQuestion.correctOptionId === selectedAnswer;
     }
 
-    console.log(
-      isCorrect,
-      "exam session",
-      isSkipped,
-      selectedAnswer,
-      examSession.currentQuestion.correctOptionId
-    );
-
     const submissionData = {
-      orderIndex: questionOrder.orderIndex,
+      orderIndex: examSession.questionOrder[0].orderIndex,
       selectedAnswer: isSkipped ? null : (selectedAnswer as OptionLetter | null),
       isSkipped,
       isCorrect,
@@ -208,7 +239,8 @@ export class ExamService {
       create: submissionData,
     });
 
-    const isLastQuestion = questionOrder.orderIndex === examSession.exam.questionCount;
+    const isLastQuestion =
+      examSession.questionOrder[0].orderIndex === examSession.exam.questionCount;
 
     if (isLastQuestion) {
       return this.submitOrFinishExam(examSessionId);
@@ -255,7 +287,10 @@ export class ExamService {
     const skippedCount = examSession.submission.filter((s) => s.isSkipped).length;
 
     const result = await this.prisma.$transaction(async (prisma) => {
-      const position = await this.calculatePosition(prisma, examSession.examId, totalCorrectAnswer);
+      const startTime = new Date(examSession.startTime);
+      const endTime = new Date().getTime();
+      const totalTimeSpent = Math.floor((endTime - startTime.getTime()) / 1000);
+
       const createdResult = await prisma.result.create({
         data: {
           userId: examSession.userId,
@@ -264,14 +299,9 @@ export class ExamService {
           correctCount: totalCorrectAnswer,
           wrongCount: wrongAnswers,
           skippedCount,
-          position,
+          totalTimeSpent,
         },
       });
-
-      const startTime = new Date(examSession.startTime);
-      const endTime = new Date().getTime();
-
-      const timeSpent = Math.floor((endTime - startTime.getTime()) / 1000 / 60);
 
       await prisma.examSession.update({
         where: { id: examSession.id },
@@ -279,7 +309,7 @@ export class ExamService {
           status: "FINISHED",
           endTime: new Date(),
           isFinished: true,
-          totalTimeSpent: timeSpent,
+          totalTimeSpent,
         },
         include: {
           exam: {
@@ -287,16 +317,6 @@ export class ExamService {
               duration: true,
             },
           },
-        },
-      });
-
-      await prisma.leaderboard.create({
-        data: {
-          userId: examSession.userId,
-          examId: examSession.examId,
-          resultId: createdResult.id,
-          position,
-          timeSpent,
         },
       });
 
@@ -322,6 +342,9 @@ export class ExamService {
         exam: {
           include: {
             examSession: {
+              where: {
+                userId,
+              },
               select: {
                 id: true,
                 startTime: true,
@@ -331,17 +354,13 @@ export class ExamService {
             },
           },
         },
-        leaderboard: {
-          select: {
-            position: true,
-            timeSpent: true,
-          },
-        },
       },
       orderBy: {
         totalScore: "desc",
       },
     });
+
+    console.log(results, "results first coming");
 
     const resultDetails = await this.getDetailedResults(results.exam.examSession[0].id);
 
@@ -357,42 +376,65 @@ export class ExamService {
       where: { id: examSessionId },
       include: {
         submission: {
-          select: {
+          include: {
             question: {
               include: {
                 questionOption: true,
               },
             },
-            selectedAnswer: true,
-            isCorrect: true,
-            isSkipped: true,
+          },
+        },
+        questionOrder: {
+          orderBy: {
+            orderIndex: "asc",
           },
         },
       },
     });
 
+    console.log(examSession, "exam session");
+
     if (!examSession) {
       throw new NotFoundException("Exam session not found");
     }
 
-    return examSession.submission.map((s) => ({
-      question: s.question.questionText,
-      selectedAnswer: s.question.questionOption.find((o) => o.optionLetter === s.selectedAnswer)
-        ?.optionText,
-      correctAnswer: s.question.correctOptionId,
-      isCorrect: s.isCorrect,
-      isSkipped: s.isSkipped,
-    }));
+    return examSession.submission.map((s) => {
+      const selectedOption = s.question.questionOption.find(
+        (opt) => opt.optionLetter === s.selectedAnswer
+      );
+      const correctOption = s.question.questionOption.find(
+        (opt) => opt.optionLetter === s.question.correctOptionId
+      );
+
+      return {
+        orderIndex: s.orderIndex,
+        question: s.question.questionText,
+        selectedAnswer: selectedOption?.optionText ?? null,
+        selectedOptionLetter: s.selectedAnswer,
+        correctAnswer: correctOption?.optionText ?? null,
+        correctOptionLetter: s.question.correctOptionId,
+        isCorrect: s.isCorrect,
+        isSkipped: s.isSkipped,
+        options: s.question.questionOption.map((opt) => ({
+          letter: opt.optionLetter,
+          text: opt.optionText,
+        })),
+      };
+    });
   }
   // get exam leaderboard
   getExamLeaderboard = async (examId: string, limit: number = 10) => {
-    const leaderboard = await this.prisma.leaderboard.findMany({
+    const leaderboard = await this.prisma.result.findMany({
       where: { examId },
-      orderBy: {
-        position: "asc",
-        timeSpent: "asc",
-      },
-      take: limit,
+      orderBy: [
+        {
+          totalScore: "desc",
+        },
+        {
+          totalTimeSpent: "asc",
+        },
+      ],
+      take: Number(limit),
       include: {
         user: {
           select: {
@@ -400,38 +442,28 @@ export class ExamService {
             username: true,
           },
         },
-        result: {
+        exam: {
           select: {
-            totalScore: true,
-            correctCount: true,
-            wrongCount: true,
-            skippedCount: true,
+            questionCount: true,
           },
         },
       },
     });
 
-    return leaderboard;
+    return leaderboard.map((entry, index) => ({
+      position: index + 1,
+      userId: entry.userId,
+      username: entry.user.username,
+      totalScore: entry.totalScore,
+      totalTimeSpent: entry.totalTimeSpent,
+      correctCount: entry.correctCount,
+      wrongCount: entry.wrongCount,
+      skippedCount: entry.skippedCount,
+      questionCount: entry.exam.questionCount,
+    }));
   };
 
   // calculate the position of the user
-
-  calculatePosition = async (
-    prisma: Prisma.TransactionClient,
-    examId: string,
-    totalScore: number
-  ) => {
-    const highScores = await prisma.result.count({
-      where: {
-        examId,
-        totalScore: {
-          gt: totalScore,
-        },
-      },
-    });
-
-    return highScores + 1;
-  };
 
   //  Generate question order
   async generateQuestionOrder(examId: string) {
