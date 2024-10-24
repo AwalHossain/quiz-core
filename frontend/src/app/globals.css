@@ -27,30 +27,47 @@
 
     /* Custom colors from the image */
     --custom-red: 360 91% 49%;
+    --custom-red-light: 360 91% 98%;
     --custom-green: 154 91% 25%;
     --custom-green-light: 148 70% 44%;
+    --custom-hero-green-light: 132 64% 84%;
     --custom-white: 0 0% 100%;
     --custom-bg-light: 0 0% 99%;
     --custom-black: 0 0% 0%;
     --custom-gray-strong: 220 3% 46%;
     --custom-content-tertiary: 0 0% 45%;
-    --custom-content-secondary: 0 0% 34%;
+    --custom-content-secondary: 0 0% 0% / 75%;
     --custom-content-white: 0 0% 100%;
     --custom-border-gray-light: 0 0% 93%;
-    --custom-border-strong-gray: 0 0% 80%;
+    --custom-border-strong-gray: 0 0% 56%;
     --custom-border-green-gray: 154 12% 87%;
-    --custom-border-green-light: 148 30% 89%;
+    --custom-content-quaternary: 0 0% 40%;
+    --custom-border-green-light: 154 91% 25% / 0.28;
     --custom-avatar-bg: 200 13% 95%;
     --custom-avatar-text: 200 23% 96%;
+    --chart-1: 173 58% 39%;
+    --chart-2: 12 76% 61%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+
   }
 
   .dark {
     --background: 0 0% 7%;
     --foreground: 0 0% 98%;
-    /* ... (other dark mode variables) ... */
-
-    /* Custom colors remain the same in dark mode */
-    /* You can adjust these if you want different values for dark mode */
+    --custom-content-secondary: 0 0% 75%;
+    --custom-content-tertiary: 0 0% 60%;
+    --custom-content-quaternary: 0 0% 40%;
+    --custom-content-white: 0 0% 100%;
+    --custom-border-gray-light: 0 0% 90%;
+    --custom-border-strong-gray: 204 1% 47%;
+    --custom-border-green-light: 154 91% 25%;
+    --chart-1: 220 70% 50%;
+    --chart-5: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-2: 340 75% 55%;
   }
 }
 
