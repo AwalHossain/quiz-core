@@ -1,9 +1,9 @@
 
+import Navbar from "@/components/navbar/Navbar";
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 import { Noto_Sans_Bengali } from "next/font/google";
 import { ReactNode } from "react";
-import Navbar from "../components/layout/Navbar";
 import { ThemeProvider } from "../components/ui/theme-provider";
 import "./globals.css";
 
