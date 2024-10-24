@@ -1,0 +1,19 @@
+# Node modules
+node_modules/
+
+# Next.js build output
+.next/
+
+# Public assets
+public/
+# Configuration files
+next.config.js
+tailwind.config.ts
+
+# Environment files
+.env.local
+.env
+
+# Generated files
+**/*.generated.js
+**/*.generated.ts

@@ -14,40 +14,76 @@ datasource db {
 }
 
 model User {
-  id          Int           @id @default(autoincrement())
-  username    String        @unique
+  id        String   @id @default(uuid())
+  username  String   @unique
+  email     String?  @unique
+  password  String?
+  role      UserRole @default(USER)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   result      Result[]
   examSession ExamSession[]
+  leaderboard Leaderboard[]
+}
+
+enum UserRole {
+  ADMIN
+  USER
 }
 
 model Exam {
-  id          Int           @id @default(autoincrement())
-  title       String
-  description String
-  duration    Int
-  startTime   DateTime?
-  endTime     DateTime?
-  question    Question[]
-  Submission  Submission[]
-  result      Result[]
-  examSession ExamSession[]
+  id            String        @id @default(uuid())
+  title         String
+  description   String
+  duration      Int
+  startTime     DateTime?
+  endTime       DateTime?
+  questionCount Int?
+  question      Question[]
+  result        Result[]
+  examSession   ExamSession[]
+
+  status       ExamStatus    @default(DRAFT)
+  passingScore Int?
+  leaderboard  Leaderboard[]
+  submission   Submission[]
+}
+
+enum ExamStatus {
+  DRAFT
+  PUBLISHED
+  COMPLETED
 }
 
 model Question {
-  id            Int             @id @default(autoincrement())
-  examId        Int
-  exam          Exam            @relation(fields: [examId], references: [id])
-  questionText  String
-  optionA       String
-  optionB       String
-  optionC       String
-  optionD       String
-  correctAnswer QuestionOption
-  submission    Submission[]
-  questionOrder QuestionOrder[]
+  id              String       @id @default(uuid())
+  examId          String
+  exam            Exam         @relation(fields: [examId], references: [id])
+  questionText    String
+  correctOptionId OptionLetter // Store the option ID here
+  type            QuestionType @default(MULTIPLE_CHOICE)
+
+  questionOption QuestionOption[]
+  ExamSession    ExamSession[]
+  Submission     Submission[]
 }
 
-enum QuestionOption {
+model QuestionOption {
+  id           String        @id @default(uuid())
+  optionText   String // The actual text of the option (e.g., "American Civil War")
+  optionLetter OptionLetter? // Optional: You can store "A", "B", "C", etc. for display
+  questionId   String
+  question     Question      @relation(fields: [questionId], references: [id])
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  ESSAY
+}
+
+enum OptionLetter {
   A
   B
   C
@@ -55,55 +91,87 @@ enum QuestionOption {
 }
 
 model ExamSession {
-  id                Int      @id @default(autoincrement())
-  startTime         DateTime
-  currentQuestionId Int      @default(1)
+  id             String    @id @default(uuid())
+  startTime      DateTime
+  endTime        DateTime?
+  isFinished     Boolean   @default(false)
+  totalTimeSpent Int?
 
-  userId Int
-  user   User @relation(fields: [userId], references: [id])
+  currentQuestionId String?
+  currentQuestion   Question? @relation(fields: [currentQuestionId], references: [id])
 
-  examId Int
-  exam   Exam @relation(fields: [examId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id])
+
+  status ExamSessionStatus @default(ONGOING)
 
   submission    Submission[]
   questionOrder QuestionOrder[]
 }
 
+enum ExamSessionStatus {
+  ONGOING
+  FINISHED
+}
+
 model Submission {
   id             Int         @id @default(autoincrement())
-  selectedAnswer String?
+  selectedAnswer OptionLetter?
   orderIndex     Int
-  examSessionId  Int
+  examSessionId  String
   examSession    ExamSession @relation(fields: [examSessionId], references: [id])
-  questionId     Int
+  questionId     String
   question       Question    @relation(fields: [questionId], references: [id])
   isSkipped      Boolean     @default(false)
   isCorrect      Boolean?
-  Exam           Exam        @relation(fields: [examId], references: [id])
-  examId         Int
+  exam           Exam        @relation(fields: [examId], references: [id])
+  examId         String
 
   @@unique([examSessionId, questionId])
 }
 
 model Result {
-  id           Int  @id @default(autoincrement())
-  userId       Int
-  user         User @relation(fields: [userId], references: [id])
-  examId       Int
-  exam         Exam @relation(fields: [examId], references: [id])
+  id           String        @id @default(uuid())
+  userId       String
+  user         User          @relation(fields: [userId], references: [id])
+  examId       String
+  exam         Exam          @relation(fields: [examId], references: [id])
   totalScore   Int
   correctCount Int
   wrongCount   Int
   skippedCount Int
-  position     Int
+  position     Int?
+  totalTimeSpent    Int?
+  leaderboard  Leaderboard[]
+}
+
+model Leaderboard {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  examId String
+  exam   Exam   @relation(fields: [examId], references: [id])
+
+  result   Result @relation(fields: [resultId], references: [id])
+  resultId String
+
+  position  Int
+  timeSpent Int?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([examId, userId])
 }
 
 model QuestionOrder {
-  id            Int         @id @default(autoincrement())
-  examSessionId Int
+  id            String      @id @default(uuid())
+  examSessionId String
   examSession   ExamSession @relation(fields: [examSessionId], references: [id])
-  questionId    Int
-  question      Question    @relation(fields: [questionId], references: [id])
+  questionId    String
   orderIndex    Int
 
   @@unique([examSessionId, questionId])

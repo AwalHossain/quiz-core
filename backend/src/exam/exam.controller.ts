@@ -1,5 +1,15 @@
-import { Body, Controller, Get, Post, Query, UsePipes, ValidationPipe } from "@nestjs/common";
-import { CreateExamDto, CreateExamSessionDto, CreateSubmissionDto } from "./dtos/createExam.dto";
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UsePipes,
+  ValidationPipe,
+} from "@nestjs/common";
+import { CreateExamDto, CreateSubmissionDto } from "./dtos/createExam.dto";
 import { ExamService } from "./exam.service";
 
 @Controller("exam")
@@ -12,14 +22,20 @@ export class ExamController {
   }
 
   @Get("/all")
-  getAllExams() {
-    return this.examService.getAllExams();
+  getAllExams(@Query("userId") userId?: string) {
+    console.log(userId, "userId");
+
+    return this.examService.getAllExams(userId);
   }
 
-  @Post("/session")
+  @Get("/session/:sessionId/:userId")
   @UsePipes(ValidationPipe)
-  createExamSession(@Body() data: CreateExamSessionDto) {
-    return this.examService.startOrResumeExam(data.userId, data.examId);
+  async createExamSession(@Param("sessionId") sessionId: string, @Param("userId") userId: string) {
+    try {
+      return await this.examService.startOrResumeExam(userId, sessionId, null);
+    } catch (error: any) {
+      throw new BadRequestException(error.message);
+    }
   }
 
   @Post("/submit")
@@ -28,13 +44,20 @@ export class ExamController {
     return this.examService.submitQuestionAnswer(data);
   }
 
-  @Get("/current")
-  getCurrentQuestion(
-    @Query("examSessionId") examSessionId: number,
-    @Query("action") action: "next" | "previous" | "current"
-  ) {
-    console.log(examSessionId, action, "examSessionId, action");
+  @Post("/finish")
+  submitOrFinishExam(@Body() data: { examSessionId: string }) {
+    return this.examService.submitOrFinishExam(data.examSessionId);
+  }
 
-    return this.examService.getCurrentQuestion(Number(examSessionId), action);
+  @Get("/result")
+  getExamResult(@Query("userId") userId: string, @Query("examId") examId: string) {
+    console.log(userId, examId, "userId, examId");
+    return this.examService.getExamResultByExamId(userId, examId);
+  }
+
+  @Get("/:examId/leaderboard")
+  getExamLeaderboard(@Param("examId") examId: string, @Query("limit") limit: number = 10) {
+    console.log(examId, limit, "examId, limit");
+    return this.examService.getExamLeaderboard(examId, limit);
   }
 }
