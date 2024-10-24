@@ -3,12 +3,13 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   UsePipes,
   ValidationPipe,
 } from "@nestjs/common";
-import { CreateExamDto, CreateExamSessionDto, CreateSubmissionDto } from "./dtos/createExam.dto";
+import { CreateExamDto, CreateSubmissionDto } from "./dtos/createExam.dto";
 import { ExamService } from "./exam.service";
 
 @Controller("exam")
@@ -21,19 +22,17 @@ export class ExamController {
   }
 
   @Get("/all")
-  getAllExams() {
-    return this.examService.getAllExams();
+  getAllExams(@Query("userId") userId?: string) {
+    console.log(userId, "userId");
+
+    return this.examService.getAllExams(userId);
   }
 
-  @Post("/session")
+  @Get("/session/:sessionId/:userId")
   @UsePipes(ValidationPipe)
-  async createExamSession(@Body() data: CreateExamSessionDto) {
+  async createExamSession(@Param("sessionId") sessionId: string, @Param("userId") userId: string) {
     try {
-      return await this.examService.startOrResumeExam(
-        data.userId,
-        data.examId,
-        data.currentQuestionId
-      );
+      return await this.examService.startOrResumeExam(userId, sessionId, null);
     } catch (error: any) {
       throw new BadRequestException(error.message);
     }
@@ -52,6 +51,13 @@ export class ExamController {
 
   @Get("/result")
   getExamResult(@Query("userId") userId: string, @Query("examId") examId: string) {
+    console.log(userId, examId, "userId, examId");
     return this.examService.getExamResultByExamId(userId, examId);
+  }
+
+  @Get("/:examId/leaderboard")
+  getExamLeaderboard(@Param("examId") examId: string, @Query("limit") limit: number = 10) {
+    console.log(examId, limit, "examId, limit");
+    return this.examService.getExamLeaderboard(examId, limit);
   }
 }
