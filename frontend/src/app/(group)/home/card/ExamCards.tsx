@@ -1,7 +1,7 @@
 'use client'
-import Q1 from "@/assets/Q1.png";
-import Q2 from "@/assets/Q2.png";
-import Q3 from "@/assets/Q3.png";
+import Q1 from "@/assets/exam-1.jpg";
+import Q2 from "@/assets/exam-2.jpg";
+import Q3 from "@/assets/exam-3.jpg";
 import { Exam } from '@/interface/constants';
 import React from 'react';
 import ExamCard from './ExamCard';
@@ -9,9 +9,10 @@ import ExamCard from './ExamCard';
 
 const ExamCards: React.FC<{ questions: Exam[], userId: string }> = ({ questions, userId }) => {
 
+
     const examIcons = [Q1, Q2, Q3];
     return (
-        <div className="flex flex-wrap gap-6 my-20">
+        <div className="flex flex-wrap gap-6 mt-10">
             {questions.map((exam, index) => (
                 <ExamCard
                     key={exam.id}
