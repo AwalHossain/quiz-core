@@ -65,93 +65,83 @@ export class QuestionsService {
 
   // fetching the current question and handling navigation
   async getCurrentQuestion(examSessionId: string, action: "next" | "previous" | "current") {
-    const examSession = await this.prisma.examSession.findUnique({
-      where: { id: examSessionId },
-      include: {
-        questionOrder: {
-          orderBy: {
-            orderIndex: "asc",
+    return this.prisma.$transaction(async (tx) => {
+      const examSession = await tx.examSession.findUnique({
+        where: { id: examSessionId },
+        include: {
+          questionOrder: {
+            orderBy: {
+              orderIndex: "asc",
+            },
+          },
+          submission: true,
+          currentQuestion: {
+            include: {
+              questionOption: true,
+            },
           },
         },
-        submission: true,
-        currentQuestion: {
-          include: {
-            questionOption: true,
-          },
+      });
+      if (!examSession) throw new NotFoundException("Exam session not found");
+
+      console.log(examSession, "examSession");
+      console.log(examSession.questionOrder, "examSession.questionOrder");
+      let currentQuestionOrder = examSession.questionOrder.find(
+        (qo) => qo.questionId === examSession.currentQuestionId
+      );
+
+      if (!currentQuestionOrder) currentQuestionOrder = examSession.questionOrder[0];
+
+      let nextQuestionOrder: QuestionOrder;
+      switch (action) {
+        case "next":
+          nextQuestionOrder = examSession.questionOrder.find(
+            (qo) => qo.orderIndex === currentQuestionOrder.orderIndex + 1
+          );
+          break;
+        case "previous":
+          nextQuestionOrder = examSession.questionOrder.find(
+            (qo) => qo.orderIndex === currentQuestionOrder.orderIndex - 1
+          );
+          break;
+
+        default:
+          nextQuestionOrder = currentQuestionOrder;
+      }
+
+      if (!nextQuestionOrder) throw new NotFoundException("Question not found");
+
+      // now fetch the current question
+      const question =
+        nextQuestionOrder.questionId === examSession.currentQuestionId
+          ? examSession.currentQuestion
+          : await tx.question.findUnique({
+              where: { id: nextQuestionOrder.questionId },
+              include: { questionOption: true },
+            });
+
+      if (!question) throw new NotFoundException("Question not found");
+
+      // update the currentQuestionId in Exam Session
+      await tx.examSession.update({
+        where: { id: examSessionId },
+        data: {
+          currentQuestionId: nextQuestionOrder.questionId,
         },
-      },
+      });
+      const currentIndex = examSession.questionOrder.findIndex(
+        (qo) => qo.questionId === nextQuestionOrder.questionId
+      );
+      const isLast = currentIndex === examSession.questionOrder.length - 1;
+      const submission = examSession.submission.find((s) => s.questionId === question.id);
+
+      return {
+        question,
+        currentIndex: currentIndex + 1,
+        isLast,
+        totalQuestions: examSession.questionOrder.length,
+        submission: submission || null,
+      };
     });
-    if (!examSession) throw new NotFoundException("Exam session not found");
-
-    console.log(examSession, "examSession");
-    console.log(examSession.questionOrder, "examSession.questionOrder");
-    let currentQuestionOrder = examSession.questionOrder.find(
-      (qo) => qo.questionId === examSession.currentQuestionId
-    );
-
-    if (!currentQuestionOrder) currentQuestionOrder = examSession.questionOrder[0];
-
-    let nextQuestionOrder: QuestionOrder;
-    switch (action) {
-      case "next":
-        // currentQuestionIndex = Math.min(
-        //   currentQuestionIndex + 1,
-        //   examSession.questionOrder.length - 1
-        // );
-        nextQuestionOrder = examSession.questionOrder.find(
-          (qo) => qo.orderIndex === currentQuestionOrder.orderIndex + 1
-        );
-        break;
-      case "previous":
-        // currentQuestionIndex = Math.max(currentQuestionIndex - 1, 0);
-        nextQuestionOrder = examSession.questionOrder.find(
-          (qo) => qo.orderIndex === currentQuestionOrder.orderIndex - 1
-        );
-        break;
-
-      default:
-        nextQuestionOrder = currentQuestionOrder;
-    }
-
-    if (!nextQuestionOrder) throw new NotFoundException("Question not found");
-
-    // now fetch the current question
-
-    const question =
-      nextQuestionOrder.questionId === examSession.currentQuestionId
-        ? examSession.currentQuestion
-        : await this.prisma.question.findUnique({
-            where: { id: nextQuestionOrder.questionId },
-            include: { questionOption: true },
-          });
-
-    // const question = await this.prisma.question.findUnique({
-    //   where: { id: currentQuestion.questionId },
-    //   include: { questionOption: true },
-    // });
-
-    if (!question) throw new NotFoundException("Question not found");
-
-    // update the currentQuestionId in Exam Session
-    await this.prisma.examSession.update({
-      where: { id: examSessionId },
-      data: {
-        currentQuestionId: nextQuestionOrder.questionId,
-      },
-    });
-    const currentIndex = examSession.questionOrder.findIndex(
-      (qo) => qo.questionId === nextQuestionOrder.questionId
-    );
-    const isLast = currentIndex === examSession.questionOrder.length - 1;
-    const submission = examSession.submission.find((s) => s.questionId === question.id);
-
-    return {
-      question,
-      currentIndex: currentIndex + 1,
-      isLast,
-      totalQuestions: examSession.questionOrder.length,
-      submission: submission || null,
-    };
-    // const submission = examSession.submission.find(s => s.questionId === currentQuestionIndex.id)
   }
 }
