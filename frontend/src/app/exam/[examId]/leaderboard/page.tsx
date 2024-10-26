@@ -41,7 +41,7 @@ export default async function ExamLeaderboard({ params }: { params: { examId: st
     console.log("params from leaderboard", params);
 
     const { examId } = params;
-    const leaderboardResponse = await getResultLeaderboard({ examId, limit: 10 });
+    const leaderboardResponse = await getResultLeaderboard({ examId, limit: 100 });
     console.log(leaderboardResponse, "leaderboardResponse here is o");
     const leaderboardData = leaderboardResponse.data;
 
