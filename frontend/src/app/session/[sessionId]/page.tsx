@@ -1,20 +1,23 @@
 // ExamSessionPage.tsx
+import { getLoginUserInfo } from "@/action/set-cookie";
 import { ExamProvider } from "@/context/ExamProvider";
-import { GetCurrentQuestion } from "@/services/questions";
-import { ExamSession } from "../../../services/session";
+
+import { ExamSession } from "@/services/session";
+import { GetCurrentQuestion } from "./features/exam-action";
 import ExamContent from "./features/ExamContent";
+import ExamTimer from "./features/ExamTimer";
 
 const ExamSessionPage = async ({ params }: { params: { sessionId: string } }) => {
-    const { data } = await ExamSession(params.sessionId, "5d042e01-f949-4c58-89a8-1c5e1d7b953b");
-    console.log(data, "Hey aman it's not working")
+    const { userId } = await getLoginUserInfo();
+    const { data } = await ExamSession(params.sessionId, userId || "");
 
-    // if (data.status === "FINISHED") {
-    //     return (
-    //         <div className="flex justify-center items-center text-red-500 font-bold text-center mt-5">
-    //             Exam has been completed
-    //         </div>
-    //     );
-    // }
+    if (data.status === "FINISHED") {
+        return (
+            <div className="flex justify-center items-center text-red-500 font-bold text-center mt-5">
+                Exam has been completed
+            </div>
+        );
+    }
 
     const { data: currentQuestion } = await GetCurrentQuestion(data.id, "current");
 
@@ -22,12 +25,12 @@ const ExamSessionPage = async ({ params }: { params: { sessionId: string } }) =>
         <div>
             <h1>Exam Questions</h1>
             <div>
-                {/* <ExamTimer initialTime={data.remainingTime} duration={data.duration} examId={parseInt(params.examId)} /> */}
+                <ExamTimer initialTime={data.remainingTime} duration={data.duration} sessionId={params.sessionId} />
 
             </div>
             {currentQuestion && (
                 <ExamProvider initialExamState={currentQuestion}>
-                    <ExamContent examSessionId={data.id} />
+                    <ExamContent examSessionId={data.id} examId={params.sessionId} userId={userId || ""} />
                 </ExamProvider>
             )}
         </div>
