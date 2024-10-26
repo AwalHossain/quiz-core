@@ -28,8 +28,8 @@ const ExamCard: React.FC<Exam & { userId: string }> = ({ id, title, icon, questi
     return (
         <div className="bg-white rounded-lg shadow-md p-6 min-w-[300px] max-w-sm mx-auto my-10">
             {/* exam icon */}
-            <div className="flex justify-center items-center mb-4">
-                <Image src={icon} alt="exam" width={50} height={50} />
+            <div className="flex justify-center items-center mb-4 w-full h-40 relative">
+                <Image src={icon} alt="exam" layout="fill" objectFit="contain" />
             </div>
             <h2 className="text-xl font-bold text-center mb-2">{title}</h2>
             {/* <hr className="border-t border-gray-200 mb-4" /> */}
@@ -42,7 +42,7 @@ const ExamCard: React.FC<Exam & { userId: string }> = ({ id, title, icon, questi
             </div>
             {hasCompleted ? (
                 <Link href={`/result/${userId}/${id}`} >
-                    <Button className="w-full mt-4  hover:bg-green-600 text-white">
+                    <Button className="w-full mt-4 bg-pink-400  hover:bg-pink-600 text-white">
                         রেজাল্ট দেখুন
                     </Button>
                 </Link>
