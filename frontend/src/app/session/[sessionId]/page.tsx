@@ -19,13 +19,16 @@ const ExamSessionPage = async ({ params }: { params: { sessionId: string } }) =>
         );
     }
 
+    console.log(userId, "data from here");
+
+
     const { data: currentQuestion } = await GetCurrentQuestion(data.id, "current");
 
     return (
         <div>
             <h1>Exam Questions</h1>
             <div>
-                <ExamTimer initialTime={data.remainingTime} duration={data.duration} sessionId={params.sessionId} />
+                <ExamTimer initialTime={data.remainingTime} duration={data.duration} sessionId={params.sessionId} userId={userId || ""} />
 
             </div>
             {currentQuestion && (
