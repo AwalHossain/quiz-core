@@ -2,22 +2,25 @@
 "use client"
 import { Button } from '@/components/ui/button';
 import { useExam, useExamNavigation } from '@/context/ExamProvider';
-import { GetCurrentQuestion, SubmitAnswer } from '@/services/questions';
 import { useRouter } from 'next/navigation';
 import React, { useState } from 'react';
 import { toast } from 'sonner';
+import { GetCurrentQuestion, SubmitAnswer } from './exam-action';
 
 interface ExamContentProps {
     examSessionId: string;
+    examId: string;
+    userId: string;
 }
 
-const ExamContent: React.FC<ExamContentProps> = ({ examSessionId }) => {
+const ExamContent: React.FC<ExamContentProps> = ({ examSessionId, examId, userId }) => {
     const {
         currentQuestion,
         currentIndex,
         isLast,
         totalQuestions,
     } = useExam();
+
     const { handleNavigation, updateExamState, isLoading } = useExamNavigation();
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     // navigate to other page
@@ -44,6 +47,9 @@ const ExamContent: React.FC<ExamContentProps> = ({ examSessionId }) => {
             } else {
 
                 const submitRespose = await SubmitAnswer({ examSessionId, questionId: currentQuestion.id, selectedAnswer: selectedOption, isSkipped: direction === 'skip' });
+
+                console.log(submitRespose, "submitRespose from exam content");
+
                 if (submitRespose.status === 201) {
                     if (isLast) {
                         console.log("isLast");
@@ -61,7 +67,8 @@ const ExamContent: React.FC<ExamContentProps> = ({ examSessionId }) => {
             (data: any) => {
                 if (data.isExamComplete) {
                     console.log("Exam complete, navigating to results");
-                    // navigate.push(`/result/${examSessionId}`);
+                    toast.success("Exam completed successfully");
+                    navigate.push(`/result/${userId}/${examId}`);
                 } else {
                     updateExamState(data);
                 }
