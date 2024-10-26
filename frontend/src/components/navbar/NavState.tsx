@@ -2,7 +2,6 @@
 "use client";
 
 
-import logo from "@/assets/Logo.png";
 import { ModeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
@@ -15,8 +14,7 @@ import {
     DropdownMenuTrigger,
 } from "@radix-ui/react-dropdown-menu";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown, Menu } from "lucide-react";
-import Image from "next/image";
+import { ChevronDown, Leaf, Menu } from "lucide-react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import ProfileItems from "./ProfileItems";
@@ -82,13 +80,7 @@ const NavState = () => {
             <div className=" flex items-center justify-between w-full px-5 ">
                 <div className="h-12 w-28">
                     <Link href="/">
-                        <Image
-                            src={logo}
-                            alt="logo of bijoy 2024"
-                            width={400}
-                            height={400}
-                            className="h-full w-full "
-                        />
+                        <Leaf className="w-10 h-10 text-primary" />
                     </Link>
                 </div>
                 <div className="flex w-full items-center lg:justify-between px-6 gap-3">
