@@ -5,6 +5,7 @@ import { useState } from 'react'
 import AuthDialog from '@/components/Auth/AuthDialog'
 import { Button } from "@/components/ui/button"
 import LoginForm from './LoginForm'
+import RegistrationForm from './RegistrationForm'
 
 
 
@@ -12,16 +13,22 @@ import LoginForm from './LoginForm'
 
 const AuthFlow: React.FC = () => {
     const [isLoginOpen, setIsLoginOpen] = useState(false)
-    const [isResetOpen, setIsResetOpen] = useState(false)
+    const [isRegistrationOpen, setIsRegistrationOpen] = useState(false)
 
     const openLoginModal = () => {
         setIsLoginOpen(true)
-        setIsResetOpen(false)
+        setIsRegistrationOpen(false)
     }
 
-    const openResetModal = () => {
+    const openRegistrationModal = () => {
+        console.log("openRegistrationModal");
         setIsLoginOpen(false)
-        setIsResetOpen(true)
+        setIsRegistrationOpen(true)
+    }
+
+    const onClose = () => {
+        setIsLoginOpen(false)
+        setIsRegistrationOpen(false)
     }
 
 
@@ -29,14 +36,21 @@ const AuthFlow: React.FC = () => {
         <div>
             <Button onClick={openLoginModal}
                 variant="outline"
-                className="px-4 py-2 hover:bg-primary rounded-xl dark:text-custom-content-white border-primary hover:border-transparent dark:border-custom-content-white "
+                className="w-full px-4 py-2 hover:bg-primary rounded-xl dark:text-custom-content-white border-primary hover:border-transparent dark:border-custom-content-white "
             >Login</Button>
 
             <AuthDialog
                 isOpen={isLoginOpen}
                 onOpenChange={setIsLoginOpen}
             >
-                <LoginForm onForgotPassword={openResetModal} />
+                <LoginForm onRegistration={openRegistrationModal} onClose={onClose} />
+            </AuthDialog>
+
+            <AuthDialog
+                isOpen={isRegistrationOpen}
+                onOpenChange={setIsRegistrationOpen}
+            >
+                <RegistrationForm onLogin={openLoginModal} onClose={onClose} />
             </AuthDialog>
 
 
