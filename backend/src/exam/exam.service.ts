@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { OptionLetter, Prisma } from "@prisma/client";
+import { OptionLetter, Prisma, PrismaClient } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateExamDto, CreateSubmissionDto } from "./dtos/createExam.dto";
 
@@ -70,58 +70,59 @@ export class ExamService {
   async startOrResumeExam(userId: string, examId: string, currentQuestionId?: string) {
     if (!userId || !examId) throw new BadRequestException("Invalid user or exam");
 
-    const examSession = await this.prisma.examSession.findFirst({
-      where: {
-        userId,
-        examId,
-      },
-      include: {
-        questionOrder: {
-          orderBy: {
-            orderIndex: "asc",
-          },
+    return this.prisma.$transaction(async (prisma) => {
+      const examSession = await prisma.examSession.findFirst({
+        where: {
+          userId,
+          examId,
         },
-        exam: {
-          select: {
-            duration: true,
-            passingScore: true,
+        include: {
+          questionOrder: {
+            orderBy: {
+              orderIndex: "asc",
+            },
           },
+          exam: {
+            select: {
+              duration: true,
+              passingScore: true,
+            },
+          },
+          submission: true,
         },
-        submission: true,
-      },
+      });
+      if (examSession) {
+        return this.updateExamState(examSession);
+      }
+
+      const newExamSession = await prisma.examSession.create({
+        data: {
+          userId,
+          examId,
+          startTime: new Date(),
+          questionOrder: {
+            create: await this.generateQuestionOrder(examId),
+          },
+          currentQuestionId: currentQuestionId ?? null,
+        },
+        include: {
+          questionOrder: {
+            orderBy: {
+              orderIndex: "asc",
+            },
+          },
+          exam: {
+            select: {
+              duration: true,
+              passingScore: true,
+            },
+          },
+          submission: true,
+        },
+      });
+
+      return this.updateExamState(newExamSession);
     });
-    if (examSession) {
-      return this.updateExamState(examSession);
-    }
-
-    const newExamSession = await this.prisma.examSession.create({
-      data: {
-        userId,
-        examId,
-        startTime: new Date(),
-        questionOrder: {
-          create: await this.generateQuestionOrder(examId),
-        },
-        currentQuestionId: currentQuestionId ?? null,
-      },
-
-      include: {
-        questionOrder: {
-          orderBy: {
-            orderIndex: "asc",
-          },
-        },
-        exam: {
-          select: {
-            duration: true,
-            passingScore: true,
-          },
-        },
-        submission: true,
-      },
-    });
-
-    return this.updateExamState(newExamSession);
   }
 
   // Update the exam state
@@ -175,78 +176,80 @@ export class ExamService {
     const { examSessionId, questionId, selectedAnswer, isSkipped } = data;
     console.log(`Submitting answer for examSessionId: ${examSessionId}, questionId: ${questionId}`);
 
-    const examSession = await this.prisma.examSession.findFirst({
-      where: { id: examSessionId },
-      include: {
-        exam: {
-          select: {
-            duration: true,
-            questionCount: true,
+    return this.prisma.$transaction(async (prisma) => {
+      const examSession = await prisma.examSession.findFirst({
+        where: { id: examSessionId },
+        include: {
+          exam: {
+            select: {
+              duration: true,
+              questionCount: true,
+            },
+          },
+          questionOrder: {
+            where: {
+              questionId,
+            },
+            select: {
+              orderIndex: true,
+            },
+          },
+          currentQuestion: {
+            select: {
+              correctOptionId: true,
+            },
           },
         },
-        questionOrder: {
-          where: {
+      });
+
+      if (!examSession) {
+        throw new NotFoundException("Exam session not found");
+      }
+      if (!examSession.questionOrder[0]) {
+        throw new NotFoundException("Question not found in this exam session");
+      }
+
+      let isCorrect: boolean | null = false;
+      if (!isSkipped && selectedAnswer !== null) {
+        isCorrect = examSession.currentQuestion.correctOptionId === selectedAnswer;
+      }
+
+      const submissionData = {
+        orderIndex: examSession.questionOrder[0].orderIndex,
+        selectedAnswer: isSkipped ? null : (selectedAnswer as OptionLetter | null),
+        isSkipped,
+        isCorrect,
+        examSession: {
+          connect: { id: examSessionId },
+        },
+        question: {
+          connect: { id: questionId },
+        },
+        exam: {
+          connect: { id: examSession.examId },
+        },
+      };
+
+      const submission = await prisma.submission.upsert({
+        where: {
+          examSessionId_questionId: {
+            examSessionId,
             questionId,
           },
-          select: {
-            orderIndex: true,
-          },
         },
-        currentQuestion: {
-          select: {
-            correctOptionId: true,
-          },
-        },
-      },
+        update: submissionData,
+        create: submissionData,
+      });
+
+      const isLastQuestion =
+        examSession.questionOrder[0].orderIndex === examSession.exam.questionCount;
+
+      if (isLastQuestion) {
+        return this.submitOrFinishExam(examSessionId);
+      }
+
+      return submission;
     });
-
-    if (!examSession) {
-      throw new NotFoundException("Exam session not found");
-    }
-    if (!examSession.questionOrder[0]) {
-      throw new NotFoundException("Question not found in this exam session");
-    }
-
-    let isCorrect: boolean | null = false;
-    if (!isSkipped && selectedAnswer !== null) {
-      isCorrect = examSession.currentQuestion.correctOptionId === selectedAnswer;
-    }
-
-    const submissionData = {
-      orderIndex: examSession.questionOrder[0].orderIndex,
-      selectedAnswer: isSkipped ? null : (selectedAnswer as OptionLetter | null),
-      isSkipped,
-      isCorrect,
-      examSession: {
-        connect: { id: examSessionId },
-      },
-      question: {
-        connect: { id: questionId },
-      },
-      exam: {
-        connect: { id: examSession.examId },
-      },
-    };
-
-    const submission = await this.prisma.submission.upsert({
-      where: {
-        examSessionId_questionId: {
-          examSessionId,
-          questionId,
-        },
-      },
-      update: submissionData,
-      create: submissionData,
-    });
-
-    const isLastQuestion =
-      examSession.questionOrder[0].orderIndex === examSession.exam.questionCount;
-
-    if (isLastQuestion) {
-      return this.submitOrFinishExam(examSessionId);
-    }
-
-    return submission;
   }
 
   // submit or finish the exam
@@ -278,99 +281,60 @@ export class ExamService {
     if (!examSession) {
       throw new NotFoundException("Exam session not found");
     }
+    console.log(examSession.submission, "is correct");
 
-    const totalCorrectAnswer = examSession.submission.filter((s) => s.isCorrect).length;
-    const wrongAnswers = examSession.submission.filter(
-      (s) => s.selectedAnswer && !s.isCorrect
-    ).length;
-
-    const skippedCount = examSession.submission.filter((s) => s.isSkipped).length;
-
-    const result = await this.prisma.$transaction(async (prisma) => {
-      const startTime = new Date(examSession.startTime);
-      const endTime = new Date().getTime();
-      const totalTimeSpent = Math.floor((endTime - startTime.getTime()) / 1000);
-
-      const createdResult = await prisma.result.create({
-        data: {
-          userId: examSession.userId,
-          examId: examSession.examId,
-          totalScore: totalCorrectAnswer,
-          correctCount: totalCorrectAnswer,
-          wrongCount: wrongAnswers,
-          skippedCount,
-          totalTimeSpent,
-        },
-      });
-
-      await prisma.examSession.update({
-        where: { id: examSession.id },
-        data: {
-          status: "FINISHED",
-          endTime: new Date(),
-          isFinished: true,
-          totalTimeSpent,
-        },
-        include: {
-          exam: {
-            select: {
-              duration: true,
-            },
-          },
-        },
-      });
-
-      return createdResult;
+    await this.prisma.$transaction(async (prisma) => {
+      const detailedResults = await this.createDetailedResults(examSession.id, prisma);
+      return detailedResults;
     });
-
-    const detailedResults = await this.getDetailedResults(examSession.id);
-
-    return {
-      ...result,
-      detailedResults,
-    };
   }
 
   // Get exam results by user id and exam id
   async getExamResultByExamId(userId: string, examId: string) {
-    const results = await this.prisma.result.findFirst({
-      where: {
-        userId,
-        examId,
-      },
-      include: {
-        exam: {
-          include: {
-            examSession: {
-              where: {
-                userId,
-              },
-              select: {
-                id: true,
-                startTime: true,
-                endTime: true,
-                totalTimeSpent: true,
+    return this.prisma.$transaction(async (prisma) => {
+      const results = await prisma.result.findFirst({
+        where: {
+          userId,
+          examId,
+        },
+        include: {
+          exam: {
+            include: {
+              examSession: {
+                where: {
+                  userId,
+                },
+                select: {
+                  id: true,
+                  startTime: true,
+                  endTime: true,
+                  totalTimeSpent: true,
+                },
               },
             },
           },
         },
-      },
-      orderBy: {
-        totalScore: "desc",
-      },
+        orderBy: {
+          totalScore: "desc",
+        },
+      });
+
+      if (!results) {
+        throw new NotFoundException("Result not found");
+      }
+
+      console.log(results, "results first coming");
+
+      const resultDetails = await this.getDetailedResults(results.exam.examSession[0].id);
+
+      return {
+        ...results,
+        ...resultDetails,
+      };
     });
-
-    console.log(results, "results first coming");
-
-    const resultDetails = await this.getDetailedResults(results.exam.examSession[0].id);
-
-    return {
-      ...results,
-      detailedResults: resultDetails,
-    };
   }
 
-  // Function to get detailed results (can be called separately when needed)
+  // get detailed results
   async getDetailedResults(examSessionId: string) {
     const examSession = await this.prisma.examSession.findUnique({
       where: { id: examSessionId },
@@ -398,7 +362,11 @@ export class ExamService {
       throw new NotFoundException("Exam session not found");
     }
 
-    return examSession.submission.map((s) => {
+    let overallTotalCorrect = 0;
+    let overallTotalWrong = 0;
+    let overallTotalSkipped = 0;
+
+    const detailedResults = examSession.submission.map((s) => {
       const selectedOption = s.question.questionOption.find(
         (opt) => opt.optionLetter === s.selectedAnswer
       );
@@ -406,6 +374,13 @@ export class ExamService {
         (opt) => opt.optionLetter === s.question.correctOptionId
       );
 
+      if (s.selectedAnswer && s.isCorrect === true) {
+        overallTotalCorrect += 1;
+      } else if (s.selectedAnswer && s.isCorrect === false) {
+        overallTotalWrong += 1;
+      } else if (s.isSkipped === true) {
+        overallTotalSkipped += 1;
+      }
       return {
         orderIndex: s.orderIndex,
         question: s.question.questionText,
@@ -421,6 +396,136 @@ export class ExamService {
         })),
       };
     });
+
+    return {
+      detailedResults,
+      overallTotalCorrect,
+      overallTotalWrong,
+      overallTotalSkipped,
+    };
+  }
+
+  // Function to get detailed results (can be called separately when needed)
+  async createDetailedResults(
+    examSessionId: string,
+    prisma: Omit<
+      PrismaClient,
+      "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
+    >
+  ) {
+    const examSession = await prisma.examSession.findUnique({
+      where: { id: examSessionId },
+      include: {
+        submission: {
+          include: {
+            question: {
+              include: {
+                questionOption: true,
+              },
+            },
+          },
+        },
+        questionOrder: {
+          orderBy: {
+            orderIndex: "asc",
+          },
+        },
+      },
+    });
+
+    console.log(examSession, "exam session");
+
+    if (!examSession) {
+      throw new NotFoundException("Exam session not found");
+    }
+
+    let overallTotalCorrect = 0;
+    let overallTotalWrong = 0;
+    let overallTotalSkipped = 0;
+
+    const detailedResults = examSession.submission.map((s) => {
+      const selectedOption = s.question.questionOption.find(
+        (opt) => opt.optionLetter === s.selectedAnswer
+      );
+      const correctOption = s.question.questionOption.find(
+        (opt) => opt.optionLetter === s.question.correctOptionId
+      );
+
+      if (s.selectedAnswer && s.isCorrect === true) {
+        overallTotalCorrect += 1;
+      } else if (s.selectedAnswer && s.isCorrect === false) {
+        overallTotalWrong += 1;
+      } else if (s.isSkipped === true) {
+        overallTotalSkipped += 1;
+      }
+      return {
+        orderIndex: s.orderIndex,
+        question: s.question.questionText,
+        selectedAnswer: selectedOption?.optionText ?? null,
+        selectedOptionLetter: s.selectedAnswer,
+        correctAnswer: correctOption?.optionText ?? null,
+        correctOptionLetter: s.question.correctOptionId,
+        isCorrect: s.isCorrect,
+        isSkipped: s.isSkipped,
+        options: s.question.questionOption.map((opt) => ({
+          letter: opt.optionLetter,
+          text: opt.optionText,
+        })),
+      };
+    });
+
+    const startTime = new Date(examSession.startTime);
+    const endTime = new Date().getTime();
+    const totalTimeSpent = Math.floor((endTime - startTime.getTime()) / 1000);
+
+    const existingResult = await prisma.result.findFirst({
+      where: {
+        userId: examSession.userId,
+        examId: examSession.examId,
+      },
+    });
+    let result;
+
+    if (existingResult) {
+      result = existingResult;
+    } else {
+      result = await prisma.result.create({
+        data: {
+          userId: examSession.userId,
+          examId: examSession.examId,
+          totalScore: overallTotalCorrect,
+          correctCount: overallTotalCorrect,
+          wrongCount: overallTotalWrong,
+          skippedCount: overallTotalSkipped,
+          totalTimeSpent,
+        },
+      });
+
+      await prisma.examSession.update({
+        where: { id: examSession.id },
+        data: {
+          status: "FINISHED",
+          endTime: new Date(),
+          isFinished: true,
+          totalTimeSpent,
+        },
+        include: {
+          exam: {
+            select: {
+              duration: true,
+            },
+          },
+        },
+      });
+    }
+
+    return {
+      result,
+      detailedResults,
+      overallTotalCorrect,
+      overallTotalWrong,
+      overallTotalSkipped,
+    };
   }
   // get exam leaderboard
   getExamLeaderboard = async (examId: string, limit: number = 10) => {
@@ -448,7 +553,10 @@ export class ExamService {
           },
         },
       },
+      distinct: ["userId"],
     });
+
+    console.log(leaderboard, "leaderboard");
 
     return leaderboard.map((entry, index) => ({
       position: index + 1,
