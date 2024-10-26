@@ -1,3 +1,4 @@
+import Footer from "@/components/layout/Footer";
 import { ReactNode } from "react";
 import { Button } from "../../components/ui/button";
 
@@ -98,6 +99,7 @@ const layout = ({
             </div>
 
             {children}
+            <Footer />
         </div >
     )
 }
