@@ -2,13 +2,13 @@
 "use client";
 
 
-import proPic from "@/assets/avatar.png";
 import logo from "@/assets/Logo.png";
 import { ModeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 import AuthFlow from "@/app/(group)/home/auth/AuthFlow";
+import { useAuth } from "@/context/AuthProvider";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -24,14 +24,11 @@ import ProfileItems from "./ProfileItems";
 
 const NavState = () => {
 
-
+    const { user, logout } = useAuth();
     const [isDropdownOpen, setIsDropdownOpen] = useState<number | null>(null);
     const [menuOpen, setMenuOpen] = useState(false);
 
-    // console.log( { locale } );
 
-    const session = false;
-    const userProfileImg = false;
 
     const handleDropdownOpenChange = (index: number) => {
         setIsDropdownOpen(isDropdownOpen === index ? null : index);
@@ -41,7 +38,20 @@ const NavState = () => {
         setMenuOpen(!menuOpen);
     };
 
+    const getInitial = (name: string) => {
+        return name.charAt(0).toUpperCase();
+    };
+
     const menuRef = useRef<HTMLDivElement>(null);
+
+    const handleItemClick = (item: any) => {
+        if (item.action === "logout") {
+            logout();
+            window.location.href = "/";
+        } else if (item.url) {
+            window.location.href = item.url;
+        }
+    };
 
     // useEffect(() => {
     //     const handleClickOutside = (event: MouseEvent) => {
@@ -129,23 +139,19 @@ const NavState = () => {
                 </div>
 
                 <div className="hidden xl:flex lg:w-1/4 lg:justify-end items-center gap-2">
-                    <ModeToggle />
+                    {/* <ModeToggle /> */}
                     {/* <TweakLanguage /> */}
 
-                    {session ? (
+                    {user?.username ? (
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                                 <Button
                                     variant="outline"
                                     className="flex items-center space-x-2 px-1 py-2 border rounded-xl border-primary dark:border-custom-content-white"
                                 >
-                                    <Image
-                                        src={userProfileImg || proPic}
-                                        alt="User Avatar"
-                                        width={32}
-                                        height={32}
-                                        className="rounded-xl"
-                                    />
+                                    <div className="w-8 h-8 rounded-full bg-secondary text-custom-content-white flex items-center justify-center font-semibold">
+                                        {getInitial(user.username || 'U')}
+                                    </div>
                                     <ChevronDown
                                         className={`w-5 h-5 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : "rotate-0"
                                             }`}
@@ -153,14 +159,16 @@ const NavState = () => {
                                 </Button>
                             </DropdownMenuTrigger>
 
-                            <DropdownMenuContent className="bg-background dark:bg-dark-background rounded-xl p-2 mt-2 shadow-lg">
+                            <DropdownMenuContent className="z-50 bg-background dark:bg-dark-background rounded-xl p-2 mt-2 shadow-lg">
                                 {ProfileItems.map((item, index) => (
                                     <DropdownMenuItem key={index} className="group rounded-xl p-1">
                                         <Link href={item.url}>
-                                            <div className="text-custom-content-tertiary  flex items-center group-hover:text-custom-content-white rounded-xl p-1 gap-2">
+                                            <button className="text-custom-content-tertiary  flex items-center group-hover:text-custom-content-white rounded-xl p-1 gap-2"
+                                                onClick={() => handleItemClick(item)}
+                                            >
                                                 {item.icon}
                                                 {item.label}
-                                            </div>
+                                            </button>
                                         </Link>
                                     </DropdownMenuItem>
                                 ))}
@@ -171,13 +179,6 @@ const NavState = () => {
                         <AuthFlow />
 
                     )}
-
-                    <Button
-                        variant="default"
-                        className="px-4 py-2 bg-primary rounded-xl text-custom-content-white"
-                    >
-                        Give Information
-                    </Button>
                 </div>
 
                 <button
@@ -211,20 +212,16 @@ const NavState = () => {
                             <motion.div className="flex flex-col space-y-2 px-4">
 
                                 {/* Conditional rendering of user menu */}
-                                {session ? (
+                                {user?.username ? (
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button
                                                 variant="outline"
                                                 className="flex items-center space-x-2 px-1 py-2 border hover:bg-green-600 dark:text-custom-content-white border-primary hover:border-transparent dark:border-custom-content-white"
                                             >
-                                                <Image
-                                                    src={userProfileImg || proPic}
-                                                    alt="User Avatar"
-                                                    width={32}
-                                                    height={32}
-                                                    className="rounded-xl"
-                                                />
+                                                <div className="w-8 h-8 rounded-full bg-primary text-custom-content-white flex items-center justify-center font-semibold">
+                                                    {getInitial(user.username || 'U')}
+                                                </div>
                                                 <ChevronDown
                                                     className={`w-5 h-5 transition-transform duration-300 ${isDropdownOpen ? "rotate-180" : "rotate-0"
                                                         }`}
@@ -232,10 +229,12 @@ const NavState = () => {
                                             </Button>
                                         </DropdownMenuTrigger>
 
-                                        <DropdownMenuContent className="bg-background border w-full dark:bg-dark-background rounded-xl p-1 mt-2 shadow-lg">
+                                        <DropdownMenuContent className="z-50 bg-background border w-full dark:bg-dark-background rounded-xl p-1 mt-2 shadow-lg">
                                             {ProfileItems.map((item, index) => (
                                                 <DropdownMenuItem key={index} className="group rounded-xl p-1">
-                                                    <Link href={item.url}>
+                                                    <Link href={item.url}
+                                                        onClick={() => handleItemClick(item)}
+                                                    >
                                                         <div className="text-custom-content-tertiary  flex items-center group-hover:text-custom-content-white rounded-xl p-1 gap-2">
                                                             {item.icon}
                                                             {item.label}
@@ -246,12 +245,7 @@ const NavState = () => {
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                 ) : (
-                                    <Button
-                                        variant="outline"
-                                        className="px-4 py-2 hover:bg-primary rounded-xl dark:text-custom-content-white border-primary hover:border-transparent dark:border-custom-content-white "
-                                    >
-                                        Login
-                                    </Button>
+                                    <AuthFlow />
                                 )}
                                 <Button
                                     variant="default"
