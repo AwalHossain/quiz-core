@@ -1,12 +1,17 @@
-import ExamCards from "../../../components/card/ExamCards";
+import { getLoginUserInfo } from "@/action/set-cookie";
+
 import { getAllExam } from "../../../services/session";
+import AuthRequired from "./AuthRequired";
+import ExamCards from "./card/ExamCards";
 
 const HomePage = async () => {
-    const getQuestions = await getAllExam({ userId: "5d042e01-f949-4c58-89a8-1c5e1d7b953b" });
-    console.log(getQuestions.data, "getQuestions");
+    const { userId } = await getLoginUserInfo();
+    const getQuestions = await getAllExam({ userId: userId || "" });
+    console.log(getQuestions?.data, "getQuestions");
     return (
         <div>
-            <ExamCards questions={getQuestions.data} />
+            <AuthRequired />
+            <ExamCards questions={getQuestions.data} userId={userId || ""} />
         </div>
     )
 }
