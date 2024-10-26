@@ -84,8 +84,6 @@ export class QuestionsService {
       });
       if (!examSession) throw new NotFoundException("Exam session not found");
 
-      console.log(examSession, "examSession");
-      console.log(examSession.questionOrder, "examSession.questionOrder");
       let currentQuestionOrder = examSession.questionOrder.find(
         (qo) => qo.questionId === examSession.currentQuestionId
       );
