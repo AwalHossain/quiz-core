@@ -1,8 +1,10 @@
 "use client"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { cn } from "@/lib/utils"
 import { CheckCircle, MinusCircle, XCircle } from "lucide-react"
 import Link from "next/link"
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer } from "recharts"
@@ -16,6 +18,7 @@ interface ExamResult {
     wrongCount: number
     skippedCount: number
     position: number
+    unansweredCount: number | null
     totalTimeSpent: number | null
     exam: {
         id: string
@@ -41,8 +44,8 @@ interface ExamResult {
         selectedOptionLetter: string | null
         correctAnswer: string
         correctOptionLetter: string
-        isCorrect: boolean
-        isSkipped: boolean
+        isCorrect: boolean | null
+        isSkipped: boolean | null
         options: Array<{
             letter: string
             text: string
@@ -104,9 +107,25 @@ export default function ShowResult({ result }: { result: ExamResult }) {
                                 <div className="space-y-2">
                                     <p className="text-sm font-medium text-muted-foreground">Position</p>
                                     <p className="text-sm font-medium text-blue-600">
-                                        <Link href={`/exam/${result.exam.id}/leaderboard`}>
-                                            See Leaderboard
-                                        </Link>
+                                        <Button
+                                            className={cn(
+                                                "relative overflow-hidden bg-gradient-to-r from-blue-400 to-purple-500",
+                                                "text-white font-bold py-2 px-4 rounded",
+                                                "transition-all duration-300 ease-out",
+                                                "hover:scale-105 hover:shadow-lg",
+                                                "before:content-[''] before:absolute before:top-0 before:left-0 before:w-full before:h-full",
+                                                "before:bg-gradient-to-r before:from-transparent before:via-white before:to-transparent",
+                                                "before:opacity-20 before:transform before:-skew-x-12",
+                                                "before:transition-all before:duration-700 before:ease-out",
+                                                "hover:before:animate-shine"
+                                            )}
+                                            variant="ghost"
+                                            asChild
+                                        >
+                                            <Link href={`/exam/${result.exam.id}/leaderboard`}>
+                                                See Leaderboard
+                                            </Link>
+                                        </Button>
                                     </p>
                                 </div>
                             </div>
@@ -171,12 +190,19 @@ export default function ShowResult({ result }: { result: ExamResult }) {
                                                 <CheckCircle className="mr-1 h-4 w-4" />
                                                 Correct
                                             </Badge>
-                                        ) : (
+                                        ) : detail.isCorrect === null && !detail.isSkipped && !detail.selectedAnswer ? (
                                             <Badge variant="outline" className="bg-red-100">
+                                                <MinusCircle className="mr-1 h-4 w-4" />
+                                                Unanswered
+                                            </Badge>
+                                        ) : !detail.isCorrect && !detail.isSkipped ? (
+                                            <Badge variant="outline" className="bg-yellow-100">
                                                 <XCircle className="mr-1 h-4 w-4" />
+
                                                 Incorrect
                                             </Badge>
-                                        )}
+                                        ) : null}
+
                                     </TableCell>
                                 </TableRow>
                             ))}
