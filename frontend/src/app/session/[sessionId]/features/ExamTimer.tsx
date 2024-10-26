@@ -7,12 +7,11 @@ import { Progress } from '../../../../components/ui/progress';
 
 interface ExamTimerProps {
     initialTime: number;
-    examId: number;
+    sessionId: string;
     duration: number;
 }
 
-const ExamTimer = ({ initialTime, examId, duration }: ExamTimerProps) => {
-    console.log(initialTime, examId, "initialTime");
+const ExamTimer = ({ initialTime, sessionId, duration }: ExamTimerProps) => {
     const [progress, setProgress] = useState(100);
     const [timeLeft, setTimeLeft] = useState(initialTime);
     const totalTime = duration * 60; // convert duration to seconds
@@ -22,14 +21,14 @@ const ExamTimer = ({ initialTime, examId, duration }: ExamTimerProps) => {
     const updateTimer = useCallback(() => {
         setTimeLeft((prev) => {
             if (prev <= 1) {
-                router.push(`/result/${examId}`);
+                router.push(`/result/${sessionId}`);
                 return 0;
             }
             const newProgress = ((prev) / totalTime) * 100;
             setProgress(newProgress);
             return prev - 1;
         })
-    }, [examId, router, totalTime])
+    }, [sessionId, router, totalTime])
     useEffect(() => {
         let lastUpdate = Date.now();
         let animationFrame: number;
