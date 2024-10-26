@@ -131,7 +131,7 @@ const NavState = () => {
                 </div>
 
                 <div className="hidden xl:flex lg:w-1/4 lg:justify-end items-center gap-2">
-                    {/* <ModeToggle /> */}
+                    <ModeToggle />
                     {/* <TweakLanguage /> */}
 
                     {user?.username ? (
