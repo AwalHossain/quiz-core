@@ -444,6 +444,7 @@ export class ExamService {
     let overallTotalSkipped = 0;
     let overallTotalUnanswered = 0;
 
+    // Calculate the detailed results
     const detailedResults = examSession.submission.map((s) => {
       const selectedOption = s.question.questionOption.find(
         (opt) => opt.optionLetter === s.selectedAnswer
@@ -529,6 +530,7 @@ export class ExamService {
       overallTotalCorrect,
       overallTotalWrong,
       overallTotalSkipped,
+      overallTotalUnanswered,
     };
   }
   // get exam leaderboard
