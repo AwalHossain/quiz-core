@@ -1,6 +1,7 @@
 
 import Navbar from "@/components/navbar/Navbar";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthProvider } from "@/context/AuthProvider";
 import type { Metadata } from "next";
 import { Noto_Sans_Bengali } from "next/font/google";
 import { ReactNode } from "react";
@@ -32,9 +33,12 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar />
-          <Toaster />
-          {children}
+          <AuthProvider>
+
+            <Navbar />
+            <Toaster richColors />
+            {children}
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>
