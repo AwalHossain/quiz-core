@@ -65,6 +65,28 @@ const config: Config = {
         },
       },
       // ... rest of your configuration
+      fontSize: {
+        'heading-extra-large': ['54px', { lineHeight: '110%', letterSpacing: '-3.1%', fontWeight: '600' }],
+        'heading-large': ['40px', { lineHeight: '110%', letterSpacing: '-3.1%', fontWeight: '500' }],
+        'heading-medium': ['38px', { lineHeight: '110%', letterSpacing: '-3.1%', fontWeight: '500' }],
+        'heading-small': ['30px', { lineHeight: '110%', letterSpacing: '-3.1%', fontWeight: '500' }],
+        'label-28': ['28px', { lineHeight: '110%', letterSpacing: '-3.1%', fontWeight: '500' }],
+        'label-24': ['24px', { lineHeight: '130%', letterSpacing: '-0.5%', fontWeight: '600' }],
+        'label-22-medium': ['22px', { lineHeight: '110%', letterSpacing: '-3.1%', fontWeight: '500' }],
+        'label-22-semibold': ['22px', { lineHeight: '110%', letterSpacing: '-3.1%', fontWeight: '600' }],
+        'label-20-regular': ['20px', { lineHeight: '100%', letterSpacing: '-3.1%', fontWeight: '400' }],
+        'label-20-medium': ['20px', { lineHeight: '110%', letterSpacing: '-3.1%', fontWeight: '500' }],
+        'label-17-regular': ['17px', { lineHeight: '110%', letterSpacing: '-1.5%', fontWeight: '400' }],
+        'label-17-medium': ['17px', { lineHeight: '110%', letterSpacing: '-1.5%', fontWeight: '500' }],
+        'label-18-regular': ['18px', { lineHeight: '100%', letterSpacing: '-0.5%', fontWeight: '400' }],
+        'label-18-semibold': ['18px', { lineHeight: '130%', letterSpacing: '-0.5%', fontWeight: '600' }],
+        'label-menu-16-bold': ['16px', { lineHeight: '100%', letterSpacing: '-1.1%', fontWeight: '700' }],
+        'label-menu-16-strong': ['16px', { lineHeight: '100%', letterSpacing: '-1.1%', fontWeight: '600' }],
+        'label-menu-16-regular': ['16px', { lineHeight: '100%', letterSpacing: '-1.1%', fontWeight: '400' }],
+        'body-20': ['20px', { lineHeight: '135%', letterSpacing: '-1%', fontWeight: '400' }],
+        'body-17': ['17px', { lineHeight: '155%', letterSpacing: '-1%', fontWeight: '400' }],
+        'body-14': ['14px', { lineHeight: '130%', letterSpacing: '-1%', fontWeight: '400' }],
+      }
     }
   },
   plugins: [require("tailwindcss-animate")],
