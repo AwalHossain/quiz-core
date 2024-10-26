@@ -13,7 +13,7 @@ const ExamResult = async ({ params }: ExamResultsProps) => {
     const result = await getResult({ userId, examId });
     console.log(result.data, "result from here");
     return (
-        <ShowResult result={result.data} />
+        <ShowResult result={result?.data} />
     )
 }
 
