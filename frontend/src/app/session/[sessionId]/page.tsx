@@ -3,6 +3,7 @@ import { getLoginUserInfo } from "@/action/set-cookie";
 import { ExamProvider } from "@/context/ExamProvider";
 
 import { ExamSession } from "@/services/session";
+import Link from "next/link";
 import { GetCurrentQuestion } from "./features/exam-action";
 import ExamContent from "./features/ExamContent";
 import ExamTimer from "./features/ExamTimer";
@@ -13,8 +14,13 @@ const ExamSessionPage = async ({ params }: { params: { sessionId: string } }) =>
 
     if (data.status === "FINISHED") {
         return (
-            <div className="flex justify-center items-center text-red-500 font-bold text-center mt-5">
-                Exam has been completed
+            <div className="flex flex-col justify-center items-center text-center mt-5">
+                <p>
+                    <span className="text-2xl text-red-500 font-bold">Exam has been completed</span>
+                </p>
+
+                <br />
+                <Link className="border border-custom-green p-2 rounded-md hover:text-white hover:bg-primary" href={`/result/${userId}/${params.sessionId}`}>Click here to view result</Link>
             </div>
         );
     }
