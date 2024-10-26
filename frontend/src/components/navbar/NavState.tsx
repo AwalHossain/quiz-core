@@ -80,7 +80,7 @@ const NavState = () => {
             <div className=" flex items-center justify-between w-full px-5 ">
                 <div className="h-12 w-28">
                     <Link href="/">
-                        <Leaf className="w-10 h-10 text-primary" />
+                        <Leaf className="w-8 h-8 text-primary" />
                     </Link>
                 </div>
                 <div className="flex w-full items-center lg:justify-between px-6 gap-3">

@@ -95,15 +95,25 @@ export class ExamService {
         return this.updateExamState(examSession);
       }
 
+      const questionOrder = await this.generateQuestionOrder(examId);
       const newExamSession = await prisma.examSession.create({
         data: {
           userId,
           examId,
           startTime: new Date(),
           questionOrder: {
-            create: await this.generateQuestionOrder(examId),
+            create: questionOrder,
           },
           currentQuestionId: currentQuestionId ?? null,
+          submission: {
+            create: questionOrder.map(({ questionId, orderIndex }) => ({
+              questionId,
+              orderIndex,
+              examId,
+              selectedAnswer: null,
+              isSkipped: false,
+            })),
+          },
         },
         include: {
           questionOrder: {
