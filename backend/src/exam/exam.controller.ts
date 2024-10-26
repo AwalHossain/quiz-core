@@ -69,4 +69,10 @@ export class ExamController {
     console.log(examId, limit, "examId, limit");
     return this.examService.getExamLeaderboard(examId, limit);
   }
+
+  @UseGuards(AuthGuard)
+  @Get("/finish/:examSessionId")
+  finishExam(@Param("examSessionId") examSessionId: string) {
+    return this.examService.submitOrFinishExam(examSessionId);
+  }
 }
