@@ -375,6 +375,7 @@ export class ExamService {
     let overallTotalCorrect = 0;
     let overallTotalWrong = 0;
     let overallTotalSkipped = 0;
+    let overallTotalUnanswered = 0;
 
     const detailedResults = examSession.submission.map((s) => {
       const selectedOption = s.question.questionOption.find(
@@ -390,6 +391,8 @@ export class ExamService {
         overallTotalWrong += 1;
       } else if (s.isSkipped === true) {
         overallTotalSkipped += 1;
+      } else if (!s.selectedAnswer && !s.isSkipped) {
+        overallTotalUnanswered += 1;
       }
       return {
         orderIndex: s.orderIndex,
@@ -412,6 +415,7 @@ export class ExamService {
       overallTotalCorrect,
       overallTotalWrong,
       overallTotalSkipped,
+      overallTotalUnanswered,
     };
   }
 
