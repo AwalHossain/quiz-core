@@ -1,8 +1,8 @@
 "use client"
 
 import { clearCookies, getLoginUserInfo } from "@/action/set-cookie";
+import Cookies from 'js-cookie';
 import { createContext, useContext, useEffect, useState } from "react";
-
 
 
 interface AuthProviderProps {
@@ -29,8 +29,12 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     const [user, setUser] = useState<User | null>(null);
 
     const logout = () => {
+
         setUser(null);
         clearCookies();
+        Cookies.remove('access_token');
+        Cookies.remove('refresh_token');
+        console.log("logout", user, Cookies.get('access_token'));
     }
 
     const value: AuthContextType = {
