@@ -2,7 +2,8 @@
 
 QuizCore is a cutting-edge MCQ (Multiple Choice Question) exam platform built with Next.js and Nest.js, offering a seamless and robust experience for both exam takers and administrators.
 
-![QuizCore Banner](insert_banner_image_url_here)
+![hero-section](https://github.com/user-attachments/assets/0c0c1469-e5fc-4d89-8205-15ab46239c37)
+
 
 ## 🚀 Features
 
@@ -13,6 +14,7 @@ QuizCore is a cutting-edge MCQ (Multiple Choice Question) exam platform built wi
 - **Leaderboard**: Compare your results with other participants.
 - **Detailed Analytics**: View comprehensive breakdowns of right, wrong, skipped, and unanswered questions.
 - **Secure Authentication**: Cookie-based authentication system for user security.
+![exam](https://github.com/user-attachments/assets/e740c21b-856f-4312-a6ca-10213e68f73e)
 
 ## 🛠️ Tech Stack
 
