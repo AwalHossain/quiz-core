@@ -202,8 +202,6 @@ This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md
 
 ---
 
-QuizCore - Empowering education through technology. Built with ❤️ by [Your Name/Team]
+QuizCore - Empowering education through technology. Built with ❤️ by Awal Hossain
 
-[Add badges here for build status, test coverage, etc.]
 
-This README provides a comprehensive overview of your QuizCore project, highlighting its key features, technologies used, and how to get started. It's designed to be attractive to recruiters by showcasing the complexity and modern tech stack of your project. You can further enhance it by adding screenshots of your application in action, which would give viewers a visual representation of your work.
