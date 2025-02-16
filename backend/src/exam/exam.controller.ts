@@ -34,11 +34,11 @@ export class ExamController {
   }
 
   @UseGuards(AuthGuard)
-  @Get("/session/:sessionId/:userId")
+  @Post("/session/:examId/:userId")
   @UsePipes(ValidationPipe)
-  async createExamSession(@Param("sessionId") sessionId: string, @Param("userId") userId: string) {
+  async createExamSession(@Param("examId") examId: string, @Param("userId") userId: string) {
     try {
-      return await this.examService.startOrResumeExam(userId, sessionId, null);
+      return await this.examService.startOrResumeExam(examId, userId, null);
     } catch (error: any) {
       throw new BadRequestException(error.message);
     }
