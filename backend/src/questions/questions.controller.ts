@@ -21,7 +21,7 @@ export class QuestionsController {
   @UseGuards(AuthGuard)
   @Post("/create")
   @UsePipes(ValidationPipe)
-  createQuestion(@Body() data: CreateQuestionDto) {
+  createQuestion(@Body() data: CreateQuestionDto[]) {
     return this.questionsService.createQuestion(data);
   }
 
