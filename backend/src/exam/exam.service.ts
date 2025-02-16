@@ -1,7 +1,8 @@
 import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
-import { OptionLetter, Prisma, PrismaClient } from "@prisma/client";
+import { OptionLetter, Prisma } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateExamDto, CreateSubmissionDto } from "./dtos/createExam.dto";
+import { PrismaTransactionalClient } from "../config/types";
 
 @Injectable()
 export class ExamService {
@@ -67,76 +68,94 @@ export class ExamService {
   }
 
   // Start or Resume Exam Session
-  async startOrResumeExam(userId: string, examId: string, currentQuestionId?: string) {
+  async startOrResumeExam(examId: string, userId: string, currentQuestionId?: string) {
     if (!userId || !examId) throw new BadRequestException("Invalid user or exam");
 
-    return this.prisma.$transaction(async (prisma) => {
-      const examSession = await prisma.examSession.findFirst({
-        where: {
-          userId,
-          examId,
-        },
-        include: {
-          questionOrder: {
-            orderBy: {
-              orderIndex: "asc",
-            },
+    return this.prisma.$transaction(
+      async (tx) => {
+        const examSession = await tx.examSession.findFirst({
+          where: {
+            userId,
+            examId,
           },
-          exam: {
-            select: {
-              duration: true,
-              passingScore: true,
+          include: {
+            questionOrder: {
+              orderBy: {
+                orderIndex: "asc",
+              },
             },
+            exam: {
+              select: {
+                duration: true,
+                passingScore: true,
+              },
+            },
+            submission: true,
           },
-          submission: true,
-        },
-      });
-      if (examSession) {
-        return this.updateExamState(examSession);
-      }
+        });
+        if (examSession) {
+          return this.updateExamState(tx, examSession);
+        }
 
-      const questionOrder = await this.generateQuestionOrder(examId);
-      const newExamSession = await prisma.examSession.create({
-        data: {
-          userId,
-          examId,
-          startTime: new Date(),
-          questionOrder: {
-            create: questionOrder,
+        const questionOrder = await this.generateQuestionOrder(tx, examId);
+
+        // 3. Create session with minimal data first
+        const newExamSession = await tx.examSession.create({
+          data: {
+            userId,
+            examId,
+            startTime: new Date(),
+            currentQuestionId: currentQuestionId ?? null,
           },
-          currentQuestionId: currentQuestionId ?? null,
-          submission: {
-            create: questionOrder.map(({ questionId, orderIndex }) => ({
+          include: {
+            questionOrder: {
+              orderBy: {
+                orderIndex: "asc",
+              },
+            },
+            exam: {
+              select: {
+                duration: true,
+                passingScore: true,
+              },
+            },
+            submission: true,
+          },
+        });
+
+        // 4. Batch insert question order and submissions
+        await Promise.all([
+          tx.questionOrder.createMany({
+            data: questionOrder.map((qo) => ({
+              ...qo,
+              examSessionId: newExamSession.id,
+            })),
+          }),
+          tx.submission.createMany({
+            data: questionOrder.map(({ questionId, orderIndex }) => ({
               questionId,
               orderIndex,
               examId,
+              examSessionId: newExamSession.id,
               selectedAnswer: null,
               isSkipped: false,
             })),
-          },
-        },
-        include: {
-          questionOrder: {
-            orderBy: {
-              orderIndex: "asc",
-            },
-          },
-          exam: {
-            select: {
-              duration: true,
-              passingScore: true,
-            },
-          },
-          submission: true,
-        },
-      });
+          }),
+        ]);
 
-      return this.updateExamState(newExamSession);
-    });
+        return this.updateExamState(tx, newExamSession);
+      },
+      {
+        maxWait: 20000, // Increased from default 2000ms
+        timeout: 30000, // Increased from default 5000ms
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, // Less strict isolation
+      }
+    );
   }
 
   // Update the exam state
   async updateExamState(
+    tx: PrismaTransactionalClient,
     session: Prisma.ExamSessionGetPayload<{
       include: {
         exam: { select: { duration: true; passingScore: true } };
@@ -154,7 +173,7 @@ export class ExamService {
     const isExpired = now > endTime;
 
     if (isExpired && session.status !== "FINISHED") {
-      await this.finalizeExam(session);
+      await this.finalizeExam(tx, session);
     }
     // if it's times not expired but user has finished the exam then just show the result and don't allow to submit
     if (session.status === "FINISHED") {
@@ -186,101 +205,154 @@ export class ExamService {
     const { examSessionId, questionId, selectedAnswer, isSkipped } = data;
     console.log(`Submitting answer for examSessionId: ${examSessionId}, questionId: ${questionId}`);
 
-    return this.prisma.$transaction(async (prisma) => {
-      const examSession = await prisma.examSession.findFirst({
-        where: { id: examSessionId },
-        include: {
-          exam: {
-            select: {
-              duration: true,
-              questionCount: true,
+    return this.prisma.$transaction(
+      async (tx) => {
+        const examSession = await tx.examSession.findFirst({
+          where: { id: examSessionId },
+          select: {
+            id: true,
+            examId: true,
+            exam: {
+              select: {
+                questionCount: true,
+              },
+            },
+            questionOrder: {
+              where: { questionId },
+              select: {
+                orderIndex: true,
+              },
+            },
+            currentQuestion: {
+              select: {
+                correctOptionId: true,
+              },
             },
           },
-          questionOrder: {
-            where: {
+        });
+
+        if (!examSession) {
+          throw new NotFoundException("Exam session not found");
+        }
+
+        console.log(examSession.questionOrder, "just checking");
+
+        if (!examSession.questionOrder[0]) {
+          throw new NotFoundException("Question not found in this exam session");
+        }
+
+        // 2. Calculate isCorrect without additional queries
+        const isCorrect =
+          !isSkipped && selectedAnswer !== null
+            ? examSession.currentQuestion.correctOptionId === selectedAnswer
+            : null;
+
+        // const submissionData = {
+        //   orderIndex: examSession.questionOrder[0].orderIndex,
+        //   selectedAnswer: isSkipped ? null : (selectedAnswer as OptionLetter | null),
+        //   isSkipped,
+        //   isCorrect,
+        //   examSession: {
+        //     connect: { id: examSessionId },
+        //   },
+        //   question: {
+        //     connect: { id: questionId },
+        //   },
+        //   exam: {
+        //     connect: { id: examSession.examId },
+        //   },
+        // };
+
+        const submission = await tx.submission.upsert({
+          where: {
+            examSessionId_questionId: {
+              examSessionId,
               questionId,
             },
-            select: {
-              orderIndex: true,
-            },
           },
-          currentQuestion: {
-            select: {
-              correctOptionId: true,
-            },
+          update: {
+            selectedAnswer: isSkipped ? null : selectedAnswer,
+            isSkipped,
+            isCorrect,
+            orderIndex: examSession.questionOrder[0].orderIndex,
           },
+          create: {
+            examSessionId,
+            questionId,
+            examId: examSession.examId,
+            selectedAnswer: isSkipped ? null : selectedAnswer,
+            isSkipped,
+            isCorrect,
+            orderIndex: examSession.questionOrder[0].orderIndex,
+          },
+        });
+
+        const isLastQuestion =
+          examSession.questionOrder[0].orderIndex === examSession.exam.questionCount;
+
+        if (isLastQuestion) {
+          return this.submitOrFinishExam(examSessionId, tx);
+        }
+
+        return submission;
+      },
+      {
+        maxWait: 10000, // Increased from default 2000ms
+        timeout: 20000, // Increased from default 5000ms
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, // Less strict isolation
+      }
+    );
+  }
+
+  // submit or finish the exam
+  async submitOrFinishExam(examSessionId: string, tx?: PrismaTransactionalClient) {
+    console.log(`Submitting or finishing exam for examSessionId: ${examSessionId}`);
+
+    if (tx) {
+      const examSession = await tx.examSession.findFirst({
+        where: { id: examSessionId },
+        include: {
+          exam: { select: { duration: true, passingScore: true } },
+          questionOrder: true,
+          submission: true,
         },
       });
 
       if (!examSession) {
         throw new NotFoundException("Exam session not found");
       }
-      if (!examSession.questionOrder[0]) {
-        throw new NotFoundException("Question not found in this exam session");
-      }
 
-      let isCorrect: boolean | null = false;
-      if (!isSkipped && selectedAnswer !== null) {
-        isCorrect = examSession.currentQuestion.correctOptionId === selectedAnswer;
-      }
-
-      const submissionData = {
-        orderIndex: examSession.questionOrder[0].orderIndex,
-        selectedAnswer: isSkipped ? null : (selectedAnswer as OptionLetter | null),
-        isSkipped,
-        isCorrect,
-        examSession: {
-          connect: { id: examSessionId },
-        },
-        question: {
-          connect: { id: questionId },
-        },
-        exam: {
-          connect: { id: examSession.examId },
-        },
-      };
-
-      const submission = await prisma.submission.upsert({
-        where: {
-          examSessionId_questionId: {
-            examSessionId,
-            questionId,
-          },
-        },
-        update: submissionData,
-        create: submissionData,
-      });
-
-      const isLastQuestion =
-        examSession.questionOrder[0].orderIndex === examSession.exam.questionCount;
-
-      if (isLastQuestion) {
-        return this.submitOrFinishExam(examSessionId);
-      }
-
-      return submission;
-    });
-  }
-
-  // submit or finish the exam
-  async submitOrFinishExam(examSessionId: string) {
-    console.log(`Submitting or finishing exam for examSessionId: ${examSessionId}`);
-    const examSession = await this.prisma.examSession.findFirst({
-      where: { id: examSessionId },
-      include: {
-        exam: { select: { duration: true, passingScore: true } },
-        questionOrder: true,
-        submission: true,
-      },
-    });
-    if (!examSession) {
-      throw new NotFoundException("Exam session not found");
+      return this.finalizeExam(tx, examSession);
     }
-    return this.finalizeExam(examSession);
+
+    return this.prisma.$transaction(
+      async (tx) => {
+        const examSession = await tx.examSession.findFirst({
+          where: { id: examSessionId },
+          include: {
+            exam: { select: { duration: true, passingScore: true } },
+            questionOrder: true,
+            submission: true,
+          },
+        });
+
+        if (!examSession) {
+          throw new NotFoundException("Exam session not found");
+        }
+
+        return this.finalizeExam(tx, examSession);
+      },
+      {
+        maxWait: 10000, // Increased from default 2000ms
+        timeout: 20000, // Increased from default 5000ms
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, // Less strict isolation
+      }
+    );
   }
 
   // finalize the exam
   async finalizeExam(
+    tx: PrismaTransactionalClient,
     examSession: Prisma.ExamSessionGetPayload<{
       include: {
         submission: true;
@@ -293,60 +365,65 @@ export class ExamService {
     }
     console.log(examSession.submission, "is correct");
 
-    await this.prisma.$transaction(async (prisma) => {
-      const detailedResults = await this.createDetailedResults(examSession.id, prisma);
-      return detailedResults;
-    });
+    const detailedResults = await this.createDetailedResults(examSession.id, tx);
+    return detailedResults;
   }
 
   // Get exam results by user id and exam id
   async getExamResultByExamId(userId: string, examId: string) {
-    return this.prisma.$transaction(async (prisma) => {
-      const results = await prisma.result.findFirst({
-        where: {
-          userId,
-          examId,
-        },
-        include: {
-          exam: {
-            include: {
-              examSession: {
-                where: {
-                  userId,
-                },
-                select: {
-                  id: true,
-                  startTime: true,
-                  endTime: true,
-                  totalTimeSpent: true,
+    return this.prisma.$transaction(
+      async (tx) => {
+        const results = await tx.result.findFirst({
+          where: {
+            userId,
+            examId,
+          },
+          include: {
+            exam: {
+              include: {
+                examSession: {
+                  where: {
+                    userId,
+                  },
+                  select: {
+                    id: true,
+                    startTime: true,
+                    endTime: true,
+                    totalTimeSpent: true,
+                  },
                 },
               },
             },
           },
-        },
-        orderBy: {
-          totalScore: "desc",
-        },
-      });
+          orderBy: {
+            totalScore: "desc",
+          },
+        });
 
-      if (!results) {
-        throw new NotFoundException("Result not found");
+        if (!results) {
+          throw new NotFoundException("Result not found");
+        }
+
+        console.log(results, "results first coming");
+
+        const resultDetails = await this.getDetailedResults(tx, results.exam.examSession[0].id);
+
+        return {
+          ...results,
+          ...resultDetails,
+        };
+      },
+      {
+        maxWait: 20000, // Increased from default 2000ms
+        timeout: 30000, // Increased from default 5000ms
+        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, // Less strict isolation
       }
-
-      console.log(results, "results first coming");
-
-      const resultDetails = await this.getDetailedResults(results.exam.examSession[0].id);
-
-      return {
-        ...results,
-        ...resultDetails,
-      };
-    });
+    );
   }
 
   // get detailed results
-  async getDetailedResults(examSessionId: string) {
-    const examSession = await this.prisma.examSession.findUnique({
+  async getDetailedResults(tx: PrismaTransactionalClient, examSessionId: string) {
+    const examSession = await tx.examSession.findUnique({
       where: { id: examSessionId },
       include: {
         submission: {
@@ -420,14 +497,8 @@ export class ExamService {
   }
 
   // Function to get detailed results (can be called separately when needed)
-  async createDetailedResults(
-    examSessionId: string,
-    prisma: Omit<
-      PrismaClient,
-      "$connect" | "$disconnect" | "$on" | "$transaction" | "$use" | "$extends"
-    >
-  ) {
-    const examSession = await prisma.examSession.findUnique({
+  async createDetailedResults(examSessionId: string, tx: PrismaTransactionalClient) {
+    const examSession = await tx.examSession.findUnique({
       where: { id: examSessionId },
       include: {
         submission: {
@@ -496,7 +567,7 @@ export class ExamService {
     const endTime = new Date().getTime();
     const totalTimeSpent = Math.floor((endTime - startTime.getTime()) / 1000);
 
-    const existingResult = await prisma.result.findFirst({
+    const existingResult = await tx.result.findFirst({
       where: {
         userId: examSession.userId,
         examId: examSession.examId,
@@ -507,7 +578,7 @@ export class ExamService {
     if (existingResult) {
       result = existingResult;
     } else {
-      result = await prisma.result.create({
+      result = await tx.result.create({
         data: {
           userId: examSession.userId,
           examId: examSession.examId,
@@ -520,7 +591,7 @@ export class ExamService {
         },
       });
 
-      await prisma.examSession.update({
+      await tx.examSession.update({
         where: { id: examSession.id },
         data: {
           status: "FINISHED",
@@ -594,8 +665,8 @@ export class ExamService {
   // calculate the position of the user
 
   //  Generate question order
-  async generateQuestionOrder(examId: string) {
-    const questions = await this.prisma.question.findMany({
+  async generateQuestionOrder(tx: PrismaTransactionalClient, examId: string) {
+    const questions = await tx.question.findMany({
       where: { examId },
       select: {
         id: true,
