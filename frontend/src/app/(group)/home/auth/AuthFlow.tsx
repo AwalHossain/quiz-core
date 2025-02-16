@@ -34,10 +34,10 @@ const AuthFlow: React.FC = () => {
 
     return (
         <div>
-            <Button onClick={openLoginModal}
-                variant="outline"
-                className="w-full px-4 py-2 hover:bg-primary rounded-xl dark:text-custom-content-white border-primary hover:border-transparent dark:border-custom-content-white "
-            >Login</Button>
+             <Button onClick={openLoginModal}
+            variant="outline"
+            className="w-full px-4 py-2 hover:bg-primary rounded-xl border-primary hover:border-transparent flex items-center justify-center"
+    >Login</Button>
 
             <AuthDialog
                 isOpen={isLoginOpen}
