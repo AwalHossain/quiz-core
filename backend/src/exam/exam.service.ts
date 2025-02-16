@@ -146,8 +146,8 @@ export class ExamService {
         return this.updateExamState(tx, newExamSession);
       },
       {
-        maxWait: 20000, // Increased from default 2000ms
-        timeout: 30000, // Increased from default 5000ms
+        maxWait: 30000, // Increased from default 2000ms
+        timeout: 50000, // Increased from default 5000ms
         isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, // Less strict isolation
       }
     );
