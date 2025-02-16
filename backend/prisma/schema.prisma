@@ -110,6 +110,9 @@ model ExamSession {
 
   submission    Submission[]
   questionOrder QuestionOrder[]
+
+  @@index([userId, examId])
+  @@index([id])
 }
 
 enum ExamSessionStatus {
@@ -131,6 +134,8 @@ model Submission {
   examId         String
 
   @@unique([examSessionId, questionId])
+  @@index([examSessionId, questionId])
+  @@index([orderIndex])
 }
 
 model Result {
@@ -147,6 +152,9 @@ model Result {
   position     Int?
   totalTimeSpent    Int?
   leaderboard  Leaderboard[]
+
+  @@index([userId, examId])
+  @@index([id])
 }
 
 model Leaderboard {
@@ -166,6 +174,8 @@ model Leaderboard {
   updatedAt DateTime @updatedAt
 
   @@unique([examId, userId])
+  @@index([examId, userId])
+  @@index([id])
 }
 
 model QuestionOrder {
@@ -177,4 +187,6 @@ model QuestionOrder {
 
   @@unique([examSessionId, questionId])
   @@unique([examSessionId, orderIndex])
+  @@index([examSessionId, questionId])
+  @@index([examSessionId, orderIndex])
 }
