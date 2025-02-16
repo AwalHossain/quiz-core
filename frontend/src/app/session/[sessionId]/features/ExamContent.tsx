@@ -41,7 +41,6 @@ const ExamContent: React.FC<ExamContentProps> = ({ examSessionId, examId, userId
     const navigateQuestion = async (direction: 'next' | 'previous' | 'skip') => {
         const apiCall = async () => {
             if (direction === 'previous') {
-
                 return await GetCurrentQuestion(examSessionId, 'previous')
 
             } else {
@@ -50,14 +49,14 @@ const ExamContent: React.FC<ExamContentProps> = ({ examSessionId, examId, userId
 
                 console.log(submitRespose, "submitRespose from exam content");
 
-                if (submitRespose.status === 201) {
-                    if (isLast) {
-                        console.log("isLast");
+                // if (submitRespose.status === 201) {
+                // }
+                if (isLast) {
+                    console.log("isLast");
 
-                        return { isExamComplete: true, status: "success" }
-                    }
-                    return await GetCurrentQuestion(examSessionId, direction === 'skip' ? 'next' : direction);
+                    return { isExamComplete: true, status: "success" }
                 }
+                return await GetCurrentQuestion(examSessionId, direction === 'skip' ? 'next' : direction);
             }
             throw new Error("Failed to fetch question")
         }
