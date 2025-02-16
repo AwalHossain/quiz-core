@@ -25,8 +25,6 @@ const ExamSessionPage = async ({ params }: { params: { sessionId: string } }) =>
         );
     }
 
-    console.log(userId, "data from here", data);
-
 
     const { data: currentQuestion } = await GetCurrentQuestion(data.id, "current");
 
