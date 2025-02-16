@@ -42,8 +42,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onLogin, onClose })
                 toast.error(`${err.message}, ${err.status}`);
             }
         }
-        onClose();
-        router.push('/home');
     }
 
 
@@ -68,11 +66,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onLogin, onClose })
                     <div className="flex flex-col gap-2 mb-4">
                         <div className='flex flex-col gap-2'>
                             <label htmlFor="username" className="text-custom-content-primary text-[14px] sm:text-[16px]">ইউজারনেম</label>
-                            <Input type="text" name="username" placeholder="ইউজারনেম" className='text-custom-content-primary py-6 dark:text-custom-content-white rounded-xl' />
+                            <Input type="text" name="username" placeholder="ইউজারনেম" className='text-custom-content-primary py-6  rounded-xl' />
                         </div>
                         <div className='flex flex-col gap-2'>
                             <label htmlFor="password" className="text-custom-content-primary text-[14px] sm:text-[16px]">পাসওয়ার্ড</label>
-                            <Input type="password" name="password" placeholder="পাসওয়ার্ড" className='text-custom-content-primary py-6 dark:text-custom-content-white rounded-xl' />
+                            <Input type="password" name="password" placeholder="পাসওয়ার্ড" className='text-custom-content-primary py-6 rounded-xl' />
                         </div>
                     </div>
                     <Button
