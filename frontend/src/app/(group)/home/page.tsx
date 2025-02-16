@@ -7,7 +7,6 @@ import ExamCards from "./card/ExamCards";
 const HomePage = async () => {
     const { userId } = await getLoginUserInfo();
     const getQuestions = await getAllExam({ userId: userId || "" });
-    console.log(getQuestions?.data, "getQuestions");
     return (
         <div>
             <AuthRequired />
