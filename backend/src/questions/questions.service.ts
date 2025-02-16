@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
-import { OptionLetter, QuestionOrder } from "@prisma/client";
+import { OptionLetter, Prisma, QuestionOrder } from "@prisma/client";
 import { PrismaService } from "../prisma/prisma.service";
 import { CreateQuestionDto } from "./dtos/createQuestio.dto";
 
@@ -7,45 +7,74 @@ import { CreateQuestionDto } from "./dtos/createQuestio.dto";
 export class QuestionsService {
   constructor(private prisma: PrismaService) {}
 
-  async createQuestion(data: CreateQuestionDto) {
-    return this.prisma.$transaction(async (tx) => {
-      const question = await tx.question.create({
-        data: {
-          questionText: data.questionText,
-          examId: data.examId,
-          correctOptionId: data.correctOptionId,
-        },
-        select: {
-          examId: true,
-          questionText: true,
-          id: true,
-          questionOption: {
-            select: {
-              optionLetter: true,
-              optionText: true,
+  async createQuestion(dataArray: CreateQuestionDto[]) {
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.question.createMany({
+          data: dataArray.map((data) => ({
+            questionText: data.questionText,
+            examId: data.examId,
+            correctOptionId: data.correctOptionId,
+          })),
+          skipDuplicates: true,
+        });
+
+        // Step 2: Fetch created questions to get their IDs
+        const createdQuestions = await tx.question.findMany({
+          where: {
+            examId: dataArray[0].examId, // Assuming all questions belong to same exam
+            questionText: {
+              in: dataArray.map((data) => data.questionText),
             },
           },
-        },
-      });
+          select: {
+            id: true,
+            questionText: true,
+          },
+        });
 
-      // create question options
-      const questionOpions = await tx.questionOption.createMany({
-        data: data.options.map((option) => ({
-          optionText: option.optionText,
-          questionId: question.id,
-          optionLetter: option.optionLetter as OptionLetter,
-        })),
-        skipDuplicates: true,
-      });
+        // create question options
+        const allOptions = createdQuestions
+          .map((question, index) => {
+            return dataArray[index].options.map((option) => ({
+              optionText: option.optionText,
+              questionId: question.id,
+              optionLetter: option.optionLetter as OptionLetter,
+            }));
+          })
+          .flat();
 
-      // update exam question count
-      await tx.exam.update({
-        where: { id: data.examId },
-        data: { questionCount: { increment: 1 } },
-        include: { question: { include: { questionOption: true } } },
-      });
-      return { ...question, options: questionOpions };
-    });
+        await tx.questionOption.createMany({
+          data: allOptions,
+          skipDuplicates: true,
+        });
+
+        // update exam question count
+        await tx.exam.update({
+          where: { id: dataArray[0].examId },
+          data: { questionCount: { increment: dataArray.length } },
+          include: { question: { include: { questionOption: true } } },
+        });
+        // Step 5: Fetch final questions with their options
+        const finalQuestions = await tx.question.findMany({
+          where: {
+            id: {
+              in: createdQuestions.map((q) => q.id),
+            },
+          },
+          include: {
+            questionOption: true,
+          },
+        });
+
+        return finalQuestions;
+      },
+      {
+        maxWait: 10000,
+        timeout: 10000,
+        isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+      }
+    );
   }
 
   async getAllQuestions() {
@@ -84,6 +113,7 @@ export class QuestionsService {
       });
       if (!examSession) throw new NotFoundException("Exam session not found");
 
+      console.log(examSession.questionOrder, "just checking");
       let currentQuestionOrder = examSession.questionOrder.find(
         (qo) => qo.questionId === examSession.currentQuestionId
       );
