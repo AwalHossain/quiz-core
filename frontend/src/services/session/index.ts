@@ -28,7 +28,7 @@ export const getAllExam =
 export const ExamSession = async (examId: string, userId: string)=> {
     try {
         const url = `${ENDPOINTS['EXAM_SESSION']}/${examId}/${userId}`;
-        const response = await serverFetch.get(url);
+        const response = await serverFetch.post(url);
         return response;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || error.message || 'An error occurred while fetching the result');
