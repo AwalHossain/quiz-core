@@ -1,23 +1,53 @@
-# Use the official Node.js 16 image as a parent image
-FROM node:16
+# Build stage
+FROM node:16 AS builder
 
-# Set the working directory
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json
+# Copy package files
 COPY package*.json ./
+COPY prisma ./prisma/
 
-# Install dependencies
+# Install dependencies including dev dependencies
 RUN npm install
 
-# Copy the rest of your app's source code
+# Generate Prisma client
+RUN npx prisma generate
+
+# Copy source code
 COPY . .
 
-# Build your app
+# Build the application
 RUN npm run build
 
-# Expose the port your app runs on
+# Check if dist/main.js exists
+RUN ls -la dist/
+
+# Production stage
+FROM node:16-slim
+
+WORKDIR /usr/src/app
+
+# Install OpenSSL - Add this before other commands
+RUN apt-get update -y && \
+    apt-get install -y openssl libssl1.1 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy package files and prisma
+COPY package*.json ./
+COPY prisma ./prisma/
+
+# Install only production dependencies
+RUN npm install --only=production
+
+# Generate Prisma client in production
+RUN npx prisma generate
+
+# Copy built application from builder stage
+COPY --from=builder /usr/src/app/dist ./dist
+
 EXPOSE 8000
 
-# Start the app
-CMD ["npm", "run", "start:prod"]
+ENV NODE_ENV=production
+
+# Change the start command to use the correct path
+CMD ["node", "dist/src/main"]

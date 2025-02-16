@@ -2,7 +2,10 @@ version: '3.8'
 
 services:
   mcq-backend:
-    image: awel07/mcq-backend
+    # image: awel07/mcq-backend
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: mcq-backend-container
     ports:
       - "8000:8000"
