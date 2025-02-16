@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { getAxiosError } from '@/lib/getAxiosError';
 import { SignIn } from '@/services/auth';
 import { AxiosError } from 'axios';
-import { useRouter } from 'next/navigation';
+import { Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 
 
@@ -15,10 +16,12 @@ interface LoginFormProps {
     onClose: () => void
 }
 
-const LoginForm: React.FC<LoginFormProps> = ({ onRegistration, onClose }) => {
-    const router = useRouter();
+const LoginForm: React.FC<LoginFormProps> = ({ onRegistration }) => {
+
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+        setIsLoading(true);
         e.preventDefault();
         const formData = new FormData(e.target as HTMLFormElement);
         const username = formData.get('username') as string;
@@ -34,15 +37,16 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegistration, onClose }) => {
             } else {
                 throw new Error('Invalid response from server');
             }
+            setIsLoading(false);
         } catch (error: any) {
             console.error('Error starting or resuming exam session: ', error.response);
             if (error instanceof AxiosError) {
                 const err = getAxiosError(error);
                 toast.error(`${err.message}, ${err.status}`);
             }
+            setIsLoading(false);
         }
-        onClose();
-        router.push('/home');
+
     }
 
 
@@ -77,8 +81,9 @@ const LoginForm: React.FC<LoginFormProps> = ({ onRegistration, onClose }) => {
                     <Button
                         type="submit"
                         variant="default"
-                        className="flex items-center justify-center gap-2 w-full py-3 sm:py-3 px-2 sm:px-3 rounded-lg shadow-sm transition-colors">
-                        লগইন করুন
+                        className="flex items-center justify-center gap-2 w-full py-3 sm:py-3 px-2 sm:px-3 rounded-lg shadow-sm transition-colors"
+                        disabled={isLoading}>
+                        {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : "লগইন করুন"}
                     </Button>
                 </form>
                 <div className="flex flex-col items-center justify-center">
