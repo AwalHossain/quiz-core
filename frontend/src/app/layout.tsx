@@ -5,7 +5,6 @@ import { AuthProvider } from "@/context/AuthProvider";
 import type { Metadata } from "next";
 import { Noto_Sans_Bengali } from "next/font/google";
 import { ReactNode } from "react";
-import { ThemeProvider } from "../components/ui/theme-provider";
 import "./globals.css";
 
 const banglaFont = Noto_Sans_Bengali({
@@ -27,19 +26,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${banglaFont.className} antialiased`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
+
           <AuthProvider>
 
             <Navbar />
-            <Toaster richColors />
+            <Toaster richColors/>
             {children}
           </AuthProvider>
-        </ThemeProvider>
       </body>
     </html>
   );
