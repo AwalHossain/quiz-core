@@ -11,7 +11,7 @@
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
+    "start:prod": "node dist/src/main",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "prettier": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "jest",
@@ -19,7 +19,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prebuild": "npx prisma generate"
+    "prebuild": "npx prisma generate",
+    "seed": "ts-node seed/exam-seeder.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
